@@ -1,25 +1,24 @@
-
-
-#include "globals.h"
 #include <Metro.h>
-#define HOLD_PALETTES_X_TIMES_AS_LONG 3
-#define CHNGSPEED 2
-
+#include "globals.h"
 #include "noise.h"
 #include "fft.h"
 
-//extern globals
+//init extern globals
 uint16_t FFTdisplayValueMax16[16]; //max vals for normalization over time
 uint32_t FFTdisplayValueMax16time[16]; //when maxval is hit
 uint8_t FFTdisplayValue16[16]; //max vals for normalization over time
 uint8_t FFTdisplayValue8[8]; //max vals for normalization over time
 uint8_t FFTdisplayValue12[12];
-float band[10];
+float band[16];//holdover from noise effects, adjust noise to directly use fft bins for speedup
 CRGBPalette16 currentPalette(LavaColors_p);
 CRGB Background_Array[24][16];
 
+#define HOLD_PALETTES_X_TIMES_AS_LONG 3
+#define CHNGSPEED 2
 
 CRGBPalette16 targetPalette(PartyColors_p);
+
+CRGBPalette16 fftpallet;
 
 uint8_t colorLoop = 0;
 
@@ -30,18 +29,17 @@ Metro Changemode = Metro(5000, 1);
 Metro GlitterSpeed = Metro(10, 1);
 Metro PAlletshifter = Metro(10, 1);
 
-uint8_t background_mode = BACKGROUND_FFT_VERT_BARS_STATIC;
+uint8_t background_mode = BACKGROUND_NOISE_FIRST;
 uint8_t background_mode_last = 255;
 
 //snapshot for fades
 CRGB Snapshot_Array[24][16];
 
+//actual output for Fastled with OctoWS2811
 CRGB Output_Array[128 * 8];
-
 
 uint8_t gHue = 0; // rotating "base color" used by many of the patterns
 
-				  // the setup routine runs once when you press reset:
 void setup() {
 
 	FastLED.addLeds<OCTOWS2811>(Output_Array, 128);
@@ -54,20 +52,20 @@ void setup() {
 	pinMode(1, OUTPUT);
 	pinMode(3, OUTPUT);
 
-	fftinit();
 
+	fft_init();
 }
 
 
 void loop() {
 	
 	//check if FFT is available from audio
-	if (fftcheck()) {
+	if (fft_check()) {
 		//do the fft math to load arrays
-		fftmath();
+		fft_math();
 		//render fft arrays to the background
-		if (background_mode <= BACKGROUND_FFT_LAST && background_mode >= BACKGROUND_FFT_FIRST) update_fft_background(background_mode);
-		if (background_mode <= BACKGROUND_NOISE_LAST && background_mode >= BACKGROUND_NOISE_FIRST) Noise(background_mode - BACKGROUND_NOISE_FIRST);
+		if (background_mode <= BACKGROUND_FFT_LAST && background_mode >= BACKGROUND_FFT_FIRST) fft_update_background(background_mode);
+		if (background_mode <= BACKGROUND_NOISE_LAST && background_mode >= BACKGROUND_NOISE_FIRST) Noise(background_mode - BACKGROUND_NOISE_FIRST+1);
 	}
 
 	if (PAlletshifter.check()) {
@@ -187,3 +185,18 @@ void ChangePalettePeriodically()
 		}
 	}
 }
+uint16_t XY(uint8_t x, uint8_t y)
+{
+
+	uint16_t tempindex = 0;
+	//determine if row is even or odd abd place pixel
+	if ((x & 0x01) == 1)  tempindex = ((7 - (x % 8)) << 4) + y; //<< 4 is multiply by 16 pixels per row
+	else                  tempindex = ((7 - (x % 8)) << 4) + 15 - y; //<< 4 is multiply by 16 pixels per row
+
+	if (x >= 16)      tempindex += 6 * 128;
+	else if (x >= 8)  tempindex += 1 * 128;
+	else              tempindex += 0 * 128;
+
+	return tempindex;
+}
+

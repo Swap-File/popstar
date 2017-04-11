@@ -1,18 +1,22 @@
 #include "noise.h"
-
-uint8_t noise[24][24];
+static void Caleidoscope1(void);
+static void Caleidoscope2(void);
+static void FillNoise16(void);
+static void FillNoise8(void);
+static void mapNoiseToLEDsUsingPalette(void);
+static void mapNoiseToLEDsUsingPalette2(void);
+//static uint16_t speed = 0; // speed is set dynamically once we've started up
+static uint16_t scale = 2000; // scale is set dynamically once we've started up
+static uint8_t noise[24][24];
 static uint16_t x_noise;
 static uint16_t y_noise;
 static uint16_t z_noise;
-
-uint16_t speed = 0; // speed is set dynamically once we've started up
-uint16_t scale = 2000; // scale is set dynamically once we've started up
 
 void Noise(uint8_t noise_version) {
 	switch (noise_version) {
 	case 1:
 		scale = 55;
-		x_noise = x_noise + band[1] * 5;
+		x_noise = x_noise + band[1] * 5;//0 to 5
 		y_noise = y_noise + band[1] * 10;
 		if (band[6] > 0.02) z_noise = z_noise + 2;
 		if (band[9] > 0.02) z_noise = z_noise + 2;
@@ -138,7 +142,8 @@ void Noise(uint8_t noise_version) {
 		break;
 	}
 }
-void Caleidoscope1() {
+
+static void Caleidoscope1(void) {
 	for (int x = 0; x < kMatrixWidth / 2; x++) {
 		for (int y = 0; y < kMatrixHeight / 2; y++) {
 			Background_Array[kMatrixWidth - 1 - x][y] = Background_Array[y][x];
@@ -148,7 +153,7 @@ void Caleidoscope1() {
 	}
 }
 
-void Caleidoscope2() {
+static void Caleidoscope2(void) {
 	for (int x = 0; x < kMatrixWidth / 2; x++) {
 		for (int y = 0; y < kMatrixHeight / 2; y++) {
 			Background_Array[kMatrixWidth - 1 - x][y] = Background_Array[x][y];
@@ -158,7 +163,7 @@ void Caleidoscope2() {
 	}
 }
 
-void FillNoise16() {
+static void FillNoise16(void) {
 	for (int i = 0; i < kMatrixWidth; i++) {
 		int ioffset = scale * i;
 		for (int j = 0; j < kMatrixHeight; j++) {
@@ -168,7 +173,7 @@ void FillNoise16() {
 	}
 }
 
-void FillNoise8() {
+static void FillNoise8(void) {
 	for (int i = 0; i < kMatrixWidth; i++) {
 		int ioffset = scale * i;
 		for (int j = 0; j < kMatrixHeight; j++) {
@@ -178,7 +183,7 @@ void FillNoise8() {
 	}
 }
 
-void mapNoiseToLEDsUsingPalette()
+void mapNoiseToLEDsUsingPalette(void)
 {
 	static uint8_t ihue = 0;
 
@@ -215,7 +220,7 @@ void mapNoiseToLEDsUsingPalette()
 }
 
 
-void mapNoiseToLEDsUsingPalette2()
+void mapNoiseToLEDsUsingPalette2(void)
 {
 	static uint8_t ihue = 0;
 

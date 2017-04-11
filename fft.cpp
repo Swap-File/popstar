@@ -1,6 +1,9 @@
 
 #include "fft.h"
 
+static void calcfftcolor(CHSV * temp_color, uint8_t input);
+static CHSV map_hsv(uint8_t input, uint8_t in_min, uint8_t in_max, CHSV* out_starting, CHSV* out_ending);
+
 CHSV color1 = CHSV(0, 255, 255);
 CHSV color2 = CHSV(64, 255, 255);
 
@@ -10,20 +13,22 @@ AudioInputAnalog         adc1(A9);  //A9 is on ADC0
 AudioAnalyzeFFT256       fft256_1;
 AudioConnection          patchCord1(adc1, fft256_1);
 
-void fftinit(void) {
+void fft_init(void) {
 	AudioMemory(4);
 	fft256_1.windowFunction(AudioWindowHanning256);
 	fft256_1.averageTogether(6);
 }
 
-boolean fftcheck() {
+boolean fft_check() {
 	return fft256_1.available();
 }
 
-void fftmath(void) {
+void fft_math(void) {
 
 	for (uint8_t i = 0; i < 16; i++) {
 		int16_t n = 1000 * fft256_1.read((i * 2), (i * 2) + 2);
+
+	
 
 		//de-emphasize lower frequencies
 		switch (i) {
@@ -33,6 +38,7 @@ void fftmath(void) {
 		case 3:  n = max(n - 10, 0);  break;
 		default: n = max(n - 3, 0);   break;
 		}
+
 
 		//falloff controll
 		FFTdisplayValueMax16[i] = max(max(FFTdisplayValueMax16[i] * .97, n), 4);
@@ -54,13 +60,12 @@ void fftmath(void) {
 	FFTdisplayValue12[11] = (FFTdisplayValue16[14] + FFTdisplayValue16[15]) >> 1;
 
 	for (uint8_t i = 0; i < 10; i++) {
-		band[i] = FFTdisplayValue12[i];
-		band[i] /= 900;
+		band[i] = FFTdisplayValue16[i];
+		band[i] /= 400;
 	}
 	 
 }
-
-void update_fft_background(uint8_t background_mode) {
+void fft_update_background(uint8_t background_mode) {
 
 	if (background_mode == BACKGROUND_FFT_HORZ_BARS_RIGHT) {
 		//move  data left 1
@@ -142,7 +147,6 @@ void update_fft_background(uint8_t background_mode) {
 	}
 }
 
-
 void calcfftcolor(CHSV * temp_color, uint8_t input) {
 
 	//make the tip of the color be color 2
@@ -153,8 +157,6 @@ void calcfftcolor(CHSV * temp_color, uint8_t input) {
 
 	return;
 }
-
-
 CHSV map_hsv(uint8_t input, uint8_t in_min, uint8_t in_max, CHSV* out_starting, CHSV* out_ending) {
 
 
@@ -176,20 +178,3 @@ CHSV map_hsv(uint8_t input, uint8_t in_min, uint8_t in_max, CHSV* out_starting, 
 		(input - in_min) * (out_ending->s - out_starting->s + 1) / (in_max - in_min + 1) + out_starting->s, \
 		(input - in_min) * (out_ending->v - out_starting->v + 1) / (in_max - in_min + 1) + out_starting->v);
 }
-
-
-uint16_t XY(uint8_t x, uint8_t y)
-{
-
-	uint16_t tempindex = 0;
-	//determine if row is even or odd abd place pixel
-	if ((x & 0x01) == 1)  tempindex = ((7 - (x % 8)) << 4) + y; //<< 4 is multiply by 16 pixels per row
-	else                  tempindex = ((7 - (x % 8)) << 4) + 15 - y; //<< 4 is multiply by 16 pixels per row
-
-	if (x >= 16)      tempindex += 6 * 128;
-	else if (x >= 8)  tempindex += 1 * 128;
-	else              tempindex += 0 * 128;
-
-	return tempindex;
-}
-
