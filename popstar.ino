@@ -1,7 +1,15 @@
+
+#define USE_OCTOWS2811
+#include <OctoWS2811.h>
+#include <FastCRC.h>
+#include <cobs.h> 
+#include "FastLED.h"
 #include <Metro.h>
 #include "globals.h"
 #include "noise.h"
 #include "fft.h"
+#include "zx.h"
+#include "oled.h"
 
 //init extern globals
 uint16_t FFTdisplayValueMax16[16]; //max vals for normalization over time
@@ -29,8 +37,10 @@ Metro Changemode = Metro(5000, 1);
 Metro GlitterSpeed = Metro(10, 1);
 Metro PAlletshifter = Metro(10, 1);
 
-uint8_t background_mode = BACKGROUND_NOISE_FIRST;
+uint8_t background_mode = BACKGROUND_FFT_FIRST;
 uint8_t background_mode_last = 255;
+
+uint8_t gHue = 0; // rotating "base color" used by many of the patterns
 
 //snapshot for fades
 CRGB Snapshot_Array[24][16];
@@ -38,27 +48,33 @@ CRGB Snapshot_Array[24][16];
 //actual output for Fastled with OctoWS2811
 CRGB Output_Array[128 * 8];
 
-uint8_t gHue = 0; // rotating "base color" used by many of the patterns
+FastCRC8 CRC8;
 
 void setup() {
+
+	oled_init();
 
 	FastLED.addLeds<OCTOWS2811>(Output_Array, 128);
 	FastLED.setBrightness(128);
 
-	Serial.begin(15200);
-	// initialize the digital pin as an output.
-
-	pinMode(0, OUTPUT);
-	pinMode(1, OUTPUT);
-	pinMode(3, OUTPUT);
-
-
+	Serial.begin(115200); //debug
+	Serial1.begin(57600);  //el wire control
+		
+	zx_init();
 	fft_init();
+
+
+
 }
+
+uint8_t packet_num = 0;
 
 
 void loop() {
+
 	
+	zx_update(); //more DMA Transfers
+
 	//check if FFT is available from audio
 	if (fft_check()) {
 		//do the fft math to load arrays
@@ -73,6 +89,9 @@ void loop() {
 		nblendPaletteTowardPalette(currentPalette, targetPalette, CHNGSPEED);
 	}
 	
+	
+	zx_update(); //more DMA Transfers
+
 	if (background_mode == BACKGROUND_GLITTER) {
 		if(background_mode_last != BACKGROUND_GLITTER) add_glitter(3); //prime the glitter
 		if (GlitterSpeed.check()) add_glitter(1); 
@@ -84,23 +103,37 @@ void loop() {
 		for (uint8_t x = 0; x < 24; x++) {
 				CRGB final_color = CRGB(0, 0, 0);
 				final_color = Background_Array[x][y];
-				Output_Array[XY(x, y)] = final_color;
+				Output_Array[XY(x,y)] = final_color;
 		}
 	}
-	
+
 
 	if (LEDoutput.check()) {
+		oled_update();
+	
 		FastLED.show();
-
+	
 		//el wire
-		if (millis() - FFTdisplayValueMax16time[0] < 150)  digitalWrite(0, 1);
-		else digitalWrite(0, 0);
-		if (millis() - FFTdisplayValueMax16time[1] < 150)  digitalWrite(1, 1);
-		else digitalWrite(1, 0);
-		if (millis() - FFTdisplayValueMax16time[2] < 150)  digitalWrite(3, 1);
-		else digitalWrite(3, 0);
-	}
 
+
+
+		uint8_t raw_buffer[15];
+
+		raw_buffer[0] = 0;
+
+		for (uint8_t i = 0; i < 8; i++) {
+			if (millis() - FFTdisplayValueMax16time[i] < 150)  bitSet(raw_buffer[0], i);
+		}
+		
+		raw_buffer[1] = packet_num++;
+		raw_buffer[2] = CRC8.maxim(raw_buffer, 2);
+
+		uint8_t encoded_buffer[16];
+
+		uint8_t encoded_size = COBSencode(raw_buffer, 3, encoded_buffer);
+		Serial1.write(encoded_buffer, encoded_size);
+		Serial1.write(0x00);
+	}
 
 
 	background_mode_last = background_mode;
@@ -185,13 +218,13 @@ void ChangePalettePeriodically()
 		}
 	}
 }
-uint16_t XY(uint8_t x, uint8_t y)
+uint16_t XY(uint16_t x, uint16_t y)
 {
 
 	uint16_t tempindex = 0;
 	//determine if row is even or odd abd place pixel
-	if ((x & 0x01) == 1)  tempindex = ((7 - (x % 8)) << 4) + y; //<< 4 is multiply by 16 pixels per row
-	else                  tempindex = ((7 - (x % 8)) << 4) + 15 - y; //<< 4 is multiply by 16 pixels per row
+	if ((x & 0x01) == 1)  tempindex = ((7 - (x % 8)) * 16) + y; //<< 4 is multiply by 16 pixels per row
+	else                  tempindex = ((7 - (x % 8)) * 16) + 15 - y; //<< 4 is multiply by 16 pixels per row
 
 	if (x >= 16)      tempindex += 6 * 128;
 	else if (x >= 8)  tempindex += 1 * 128;

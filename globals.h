@@ -5,7 +5,7 @@
 #include <Audio.h>
 #define USE_OCTOWS2811
 #include<OctoWS2811.h>
-#include <FastLED.h>
+#include "FastLED.h"
 
 #define kMatrixWidth 24
 #define kMatrixHeight 16
@@ -33,7 +33,7 @@
 #define BACKGROUND_NOISE_11 16
 #define BACKGROUND_NOISE_LAST 16
 #define BACKGROUND_GLITTER 17
-
+#define NOCATCHUP 1
 
 
 //FFT data

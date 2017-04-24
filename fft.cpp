@@ -14,9 +14,9 @@ AudioAnalyzeFFT256       fft256_1;
 AudioConnection          patchCord1(adc1, fft256_1);
 
 void fft_init(void) {
-	AudioMemory(4);
+	AudioMemory(3);
 	fft256_1.windowFunction(AudioWindowHanning256);
-	fft256_1.averageTogether(6);
+	fft256_1.averageTogether(4);
 }
 
 boolean fft_check() {
