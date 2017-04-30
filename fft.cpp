@@ -63,6 +63,10 @@ void fft_math(void) {
 		band[i] = FFTdisplayValue16[i];
 		band[i] /= 400;
 	}
+
+	for (uint8_t i = 0; i < 8; i++) {
+		EL_Strips[i] = (millis() - FFTdisplayValueMax16time[i] < 150) ? true : false;
+	}
 	 
 }
 void fft_update_background(uint8_t background_mode) {

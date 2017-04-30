@@ -20,6 +20,8 @@ uint8_t FFTdisplayValue12[12];
 float band[16];//holdover from noise effects, adjust noise to directly use fft bins for speedup
 CRGBPalette16 currentPalette(LavaColors_p);
 CRGB Background_Array[24][16];
+boolean EL_Strips[8];
+
 
 #define HOLD_PALETTES_X_TIMES_AS_LONG 3
 #define CHNGSPEED 2
@@ -30,7 +32,7 @@ CRGBPalette16 fftpallet;
 
 uint8_t colorLoop = 0;
 
-Metro LEDoutput = Metro(10, 1);
+Metro timer_100hz = Metro(10, 1);
 
 Metro Changemode = Metro(5000, 1);
 
@@ -51,7 +53,6 @@ CRGB Output_Array[128 * 8];
 FastCRC8 CRC8;
 
 void setup() {
-
 	oled_init();
 
 	FastLED.addLeds<OCTOWS2811>(Output_Array, 128);
@@ -62,18 +63,13 @@ void setup() {
 		
 	zx_init();
 	fft_init();
-
-
-
 }
 
 uint8_t packet_num = 0;
 
-
 void loop() {
 
-	
-	zx_update(); //more DMA Transfers
+	zx_update(); //initiate i2c background DMA Transfers
 
 	//check if FFT is available from audio
 	if (fft_check()) {
@@ -90,7 +86,7 @@ void loop() {
 	}
 	
 	
-	zx_update(); //more DMA Transfers
+	//zx_update(); //initiate i2c background DMA Transfers
 
 	if (background_mode == BACKGROUND_GLITTER) {
 		if(background_mode_last != BACKGROUND_GLITTER) add_glitter(3); //prime the glitter
@@ -108,41 +104,38 @@ void loop() {
 	}
 
 
-	if (LEDoutput.check()) {
+	//100hz framerate
+	if (timer_100hz.check()) {
 		oled_update();
 	
 		FastLED.show();
 	
 		//el wire
-
-
-
 		uint8_t raw_buffer[15];
-
 		raw_buffer[0] = 0;
 
-		for (uint8_t i = 0; i < 8; i++) {
-			if (millis() - FFTdisplayValueMax16time[i] < 150)  bitSet(raw_buffer[0], i);
+		if (FastLED.getBrightness() > 0) {
+
+			for (uint8_t i = 0; i < 8; i++) if (EL_Strips[i]) bitSet(raw_buffer[0], i);
 		}
-		
 		raw_buffer[1] = packet_num++;
 		raw_buffer[2] = CRC8.maxim(raw_buffer, 2);
 
 		uint8_t encoded_buffer[16];
-
 		uint8_t encoded_size = COBSencode(raw_buffer, 3, encoded_buffer);
+
 		Serial1.write(encoded_buffer, encoded_size);
 		Serial1.write(0x00);
 	}
 
 
 	background_mode_last = background_mode;
-	if (Changemode.check()) {
+	//if (Changemode.check()) {
 		
-		   background_mode++;
-		  if ( background_mode >  BACKGROUND_GLITTER) background_mode = BACKGROUND_FFT_FIRST;
-		  Serial.println(background_mode);
-	}
+	//	   background_mode++;
+	//	  if ( background_mode >  BACKGROUND_GLITTER) background_mode = BACKGROUND_FFT_FIRST;
+	//	  Serial.println(background_mode);
+	//}
 	
 	//snapshot the last image if we changed modes
 	if (background_mode != background_mode_last) memcpy(Snapshot_Array, Background_Array , 24 * 16 * sizeof(CRGB));
@@ -218,13 +211,12 @@ void ChangePalettePeriodically()
 		}
 	}
 }
-uint16_t XY(uint16_t x, uint16_t y)
-{
+uint16_t XY(uint16_t x, uint16_t y){
 
 	uint16_t tempindex = 0;
 	//determine if row is even or odd abd place pixel
-	if ((x & 0x01) == 1)  tempindex = ((7 - (x % 8)) * 16) + y; //<< 4 is multiply by 16 pixels per row
-	else                  tempindex = ((7 - (x % 8)) * 16) + 15 - y; //<< 4 is multiply by 16 pixels per row
+	if ((x & 0x01) == 1)  tempindex = ((7 - (x % 8)) << 4) + y; //<< 4 is multiply by 16 pixels per row
+	else                  tempindex = ((7 - (x % 8)) << 4) + 15 - y; //<< 4 is multiply by 16 pixels per row
 
 	if (x >= 16)      tempindex += 6 * 128;
 	else if (x >= 8)  tempindex += 1 * 128;

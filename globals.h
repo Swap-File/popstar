@@ -45,6 +45,11 @@ extern uint8_t FFTdisplayValue12[12];
 extern float band[16];
 extern CRGBPalette16 currentPalette;
 extern CRGB Background_Array[24][16];
+extern boolean EL_Strips[8];
+extern uint8_t background_mode;
+
+
+
 
 #endif
 
