@@ -1,11 +1,11 @@
-
+#include "popstar.h"
+#include "states.h"
+#include <Audio.h>
 #define USE_OCTOWS2811
 #include <OctoWS2811.h>
-#include <FastCRC.h>
-#include <cobs.h> 
 #include "FastLED.h"
+#include "coprocessors.h"
 #include <Metro.h>
-#include "globals.h"
 #include "noise.h"
 #include "fft.h"
 #include "zx.h"
@@ -21,7 +21,7 @@ float band[16];//holdover from noise effects, adjust noise to directly use fft b
 CRGBPalette16 currentPalette(LavaColors_p);
 CRGB Background_Array[24][16];
 boolean EL_Strips[8];
-
+uint8_t menu_location = MENU_LOCKED;
 
 #define HOLD_PALETTES_X_TIMES_AS_LONG 3
 #define CHNGSPEED 2
@@ -39,18 +39,18 @@ Metro Changemode = Metro(5000, 1);
 Metro GlitterSpeed = Metro(10, 1);
 Metro PAlletshifter = Metro(10, 1);
 
-uint8_t background_mode = BACKGROUND_FFT_FIRST;
-uint8_t background_mode_last = 255;
+int8_t background_mode = BACKGROUND_FFT_FIRST;
+int8_t background_mode_last = 255;
 
 uint8_t gHue = 0; // rotating "base color" used by many of the patterns
 
-//snapshot for fades
+				  //snapshot for fades
 CRGB Snapshot_Array[24][16];
 
 //actual output for Fastled with OctoWS2811
 CRGB Output_Array[128 * 8];
 
-FastCRC8 CRC8;
+
 
 void setup() {
 	oled_init();
@@ -60,16 +60,18 @@ void setup() {
 
 	Serial.begin(115200); //debug
 	Serial1.begin(57600);  //el wire control
-		
+
 	zx_init();
 	fft_init();
 }
 
-uint8_t packet_num = 0;
+
 
 void loop() {
 
 	zx_update(); //initiate i2c background DMA Transfers
+	SerialUpdate();
+	state_update();
 
 	//check if FFT is available from audio
 	if (fft_check()) {
@@ -77,68 +79,52 @@ void loop() {
 		fft_math();
 		//render fft arrays to the background
 		if (background_mode <= BACKGROUND_FFT_LAST && background_mode >= BACKGROUND_FFT_FIRST) fft_update_background(background_mode);
-		if (background_mode <= BACKGROUND_NOISE_LAST && background_mode >= BACKGROUND_NOISE_FIRST) Noise(background_mode - BACKGROUND_NOISE_FIRST+1);
+		if (background_mode <= BACKGROUND_NOISE_LAST && background_mode >= BACKGROUND_NOISE_FIRST) Noise(background_mode - BACKGROUND_NOISE_FIRST + 1);
 	}
 
 	if (PAlletshifter.check()) {
 		ChangePalettePeriodically();
 		nblendPaletteTowardPalette(currentPalette, targetPalette, CHNGSPEED);
 	}
-	
-	
-	//zx_update(); //initiate i2c background DMA Transfers
 
 	if (background_mode == BACKGROUND_GLITTER) {
-		if(background_mode_last != BACKGROUND_GLITTER) add_glitter(3); //prime the glitter
-		if (GlitterSpeed.check()) add_glitter(1); 
+		if (background_mode_last != BACKGROUND_GLITTER) add_glitter(3); //prime the glitter
+		if (GlitterSpeed.check()) add_glitter(1);
 	}
 
 
 	//update the array
 	for (uint8_t y = 0; y < 16; y++) {
 		for (uint8_t x = 0; x < 24; x++) {
-				CRGB final_color = CRGB(0, 0, 0);
-				final_color = Background_Array[x][y];
-				Output_Array[XY(x,y)] = final_color;
+			CRGB final_color = CRGB(0, 0, 0);
+			final_color = Background_Array[x][y];
+			Output_Array[XY(x, y)] = final_color;
 		}
 	}
-
 
 	//100hz framerate
 	if (timer_100hz.check()) {
 		oled_update();
-	
+
 		FastLED.show();
-	
-		//el wire
-		uint8_t raw_buffer[15];
-		raw_buffer[0] = 0;
 
-		if (FastLED.getBrightness() > 0) {
-
-			for (uint8_t i = 0; i < 8; i++) if (EL_Strips[i]) bitSet(raw_buffer[0], i);
-		}
-		raw_buffer[1] = packet_num++;
-		raw_buffer[2] = CRC8.maxim(raw_buffer, 2);
-
-		uint8_t encoded_buffer[16];
-		uint8_t encoded_size = COBSencode(raw_buffer, 3, encoded_buffer);
-
-		Serial1.write(encoded_buffer, encoded_size);
-		Serial1.write(0x00);
+		elwire_output();
 	}
 
-
-	background_mode_last = background_mode;
 	//if (Changemode.check()) {
-		
+
 	//	   background_mode++;
 	//	  if ( background_mode >  BACKGROUND_GLITTER) background_mode = BACKGROUND_FFT_FIRST;
 	//	  Serial.println(background_mode);
 	//}
-	
+
 	//snapshot the last image if we changed modes
-	if (background_mode != background_mode_last) memcpy(Snapshot_Array, Background_Array , 24 * 16 * sizeof(CRGB));
+	if (background_mode != background_mode_last) memcpy(Snapshot_Array, Background_Array, 24 * 16 * sizeof(CRGB));
+
+
+
+
+	background_mode_last = background_mode;
 }
 
 void add_glitter(uint8_t points) {
@@ -211,7 +197,7 @@ void ChangePalettePeriodically()
 		}
 	}
 }
-uint16_t XY(uint16_t x, uint16_t y){
+uint16_t XY(uint16_t x, uint16_t y) {
 
 	uint16_t tempindex = 0;
 	//determine if row is even or odd abd place pixel

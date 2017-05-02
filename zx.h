@@ -8,7 +8,7 @@
 #else
 	#include "WProgram.h"
 #endif
-#include "globals.h"
+#include "popstar.h"
 
 //i2c addresses
 #define SENSOR1             0x10
@@ -31,6 +31,7 @@
 #define GESTURE_HOVER_UP 8
 
 
+
 typedef struct {
 	uint8_t    speed;
 	uint32_t    gesture_time;
@@ -44,9 +45,13 @@ typedef struct {
 	bool       zx_fresh;
 	uint8_t    status;
 	uint8_t    address;
+	uint8_t    order;
 } zx_sensor;
 
- 
+extern zx_sensor sensor1;
+extern zx_sensor sensor2;
+extern zx_sensor* current_sensor;
+
 void zx_init(void);
 void zx_update(void);
 

@@ -11,7 +11,7 @@
 
 #include <Adafruit_GFX.h> //use modified version with pixelread
 #include <Adafruit_SSD1306.h> //use modified version for 64x48 OLED
-#include "globals.h"
+#include "popstar.h"
 #define OLED_DC     16
 #define OLED_CS     22
 #define OLED_RESET  15

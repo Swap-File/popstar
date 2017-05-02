@@ -1,6 +1,12 @@
-// globals.h
-#ifndef _GLOBALS_h
-#define _GLOBALS_h
+
+#ifndef _POPSTAR_h
+#define _POPSTAR_h
+
+#if defined(ARDUINO) && ARDUINO >= 100
+#include "arduino.h"
+#else
+#include "WProgram.h"
+#endif
 
 #include <Audio.h>
 #define USE_OCTOWS2811
@@ -11,6 +17,7 @@
 #define kMatrixHeight 16
 
 //background modes
+#define BACKGROUND_FIRST 0
 #define BACKGROUND_FFT_FIRST 0
 #define BACKGROUND_FFT_HORZ_BARS_LEFT 0
 #define BACKGROUND_FFT_HORZ_BARS_RIGHT 1
@@ -33,9 +40,7 @@
 #define BACKGROUND_NOISE_11 16
 #define BACKGROUND_NOISE_LAST 16
 #define BACKGROUND_GLITTER 17
-#define NOCATCHUP 1
-
-
+#define BACKGROUND_LAST 17
 //FFT data
 extern uint16_t FFTdisplayValueMax16[16]; //max vals for normalization over time
 extern uint32_t FFTdisplayValueMax16time[16]; //when maxval is hit
@@ -46,10 +51,9 @@ extern float band[16];
 extern CRGBPalette16 currentPalette;
 extern CRGB Background_Array[24][16];
 extern boolean EL_Strips[8];
-extern uint8_t background_mode;
+extern int8_t background_mode;
 
-
+extern uint8_t menu_location;
 
 
 #endif
-

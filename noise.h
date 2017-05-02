@@ -7,7 +7,7 @@
 #include "WProgram.h"
 #endif
 
-#include "globals.h"
+#include "popstar.h"
 
 void Noise(uint8_t noise_version);
 

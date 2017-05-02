@@ -2,17 +2,21 @@
 #include <i2c_t3.h>
 #include <Metro.h>
 
-Metro Changemodef = Metro(1000, 1);
+#define ORDER_RESET_TIMEOUT 2000
+
+Metro timer_1hz = Metro(1000, 1);
 
 static uint8_t state = 0;
 static uint8_t fps = 0;
 static uint16_t hangs = 0;
 static uint32_t next_start_time = 0;
 static uint32_t bus_timeout = 0;
+static uint32_t freshtime = 0;
 
 zx_sensor sensor1;
 zx_sensor sensor2;
 zx_sensor* current_sensor = &sensor1;
+
 void next_sensor(void);
 
 void zx_init() {
@@ -23,9 +27,20 @@ void zx_init() {
 	next_start_time = millis();
 	sensor1.address = SENSOR1;
 	sensor2.address = SENSOR2;
+	sensor1.gesture_fresh = false;
+	sensor2.gesture_fresh = false;
+	sensor1.zx_fresh = false;
+	sensor2.zx_fresh = false;
+	sensor1.order = 0;
+	sensor2.order = 0;
 }
 
 void zx_update() {
+
+	sensor1.zx_fresh = 0;
+	sensor2.zx_fresh = 0;
+	sensor1.gesture_fresh = 0;
+	sensor2.gesture_fresh = 0;
 
 	if (Wire.done() && (state % 2)) { //check if dma transaction is done, all odd states are wait to finish
 		state++;  //go to next even state
@@ -75,6 +90,7 @@ void zx_update() {
 	}
 	if (state == 12 && Wire.available()) {
 		current_sensor->x = Wire.read();
+
 		current_sensor->zx_fresh = true;
 		state = 14; //dont wait, go immediately to reply
 	}
@@ -111,17 +127,29 @@ void zx_update() {
 		state = 24; //goto done
 	}
 	if (state == 24 ) {   //done
-
 		fps++;
 		state = 0;
-
 		current_sensor->x_filtered = (current_sensor->x_filtered >> 1) + (current_sensor->x >> 1);
 		current_sensor->z_filtered = (current_sensor->z_filtered >> 1) + (current_sensor->z >> 1);
+
+		if (sensor1.zx_fresh && sensor2.order == 0) 	sensor1.order = 1;
+		if (sensor2.zx_fresh && sensor1.order == 0) 	sensor2.order = 1;
+		if (sensor1.zx_fresh && sensor2.order == 1) 	sensor1.order = 2;
+		if (sensor2.zx_fresh && sensor1.order == 1) 	sensor2.order = 2;
+		
+		if (sensor1.zx_fresh || sensor2.zx_fresh || sensor1.gesture_fresh || sensor2.gesture_fresh) {
+			freshtime = millis();
+		}
+
+		if (millis() - freshtime > ORDER_RESET_TIMEOUT) {
+			sensor1.order = 0;
+			sensor2.order = 0;
+		}
 
 		next_sensor();
 	}
 
-	if (Changemodef.check()) {
+	if (timer_1hz.check()) {
 		Serial.print("<");
 		Serial.print(fps);
 		Serial.print(" ");
@@ -140,9 +168,16 @@ void zx_update() {
 		next_start_time = millis();
 	}
 
+
+	
 }
 
 void next_sensor(void){
 	if (current_sensor == &sensor1) current_sensor = &sensor2;
 	else							current_sensor = &sensor1;
+
+
+
+
+
 }
