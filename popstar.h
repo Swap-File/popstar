@@ -52,8 +52,8 @@ extern CRGBPalette16 currentPalette;
 extern CRGB Background_Array[24][16];
 extern boolean EL_Strips[8];
 extern int8_t background_mode;
-
+extern int8_t requested_palette;
 extern uint8_t menu_location;
 
-
+void ChangeTargetPalette(uint8_t requested_palette);
 #endif

@@ -28,16 +28,12 @@ uint8_t menu_location = MENU_LOCKED;
 
 CRGBPalette16 targetPalette(PartyColors_p);
 
-CRGBPalette16 fftpallet;
+int8_t requested_palette = 0;
 
-uint8_t colorLoop = 0;
-
+Metro timer_1hz = Metro(1000, 1);
 Metro timer_100hz = Metro(10, 1);
-
-Metro Changemode = Metro(5000, 1);
-
 Metro GlitterSpeed = Metro(10, 1);
-Metro PAlletshifter = Metro(10, 1);
+Metro PaletteBlender = Metro(10, 1);
 
 int8_t background_mode = BACKGROUND_FFT_FIRST;
 int8_t background_mode_last = 255;
@@ -50,22 +46,16 @@ CRGB Snapshot_Array[24][16];
 //actual output for Fastled with OctoWS2811
 CRGB Output_Array[128 * 8];
 
-
-
 void setup() {
 	oled_init();
-
 	FastLED.addLeds<OCTOWS2811>(Output_Array, 128);
 	FastLED.setBrightness(128);
-
 	Serial.begin(115200); //debug
-	Serial1.begin(57600);  //el wire control
-
+	Serial1.begin(57600);  //el wire output and IMU input
+	ChangeTargetPalette(requested_palette);  //set initial palette
 	zx_init();
 	fft_init();
 }
-
-
 
 void loop() {
 
@@ -82,8 +72,7 @@ void loop() {
 		if (background_mode <= BACKGROUND_NOISE_LAST && background_mode >= BACKGROUND_NOISE_FIRST) Noise(background_mode - BACKGROUND_NOISE_FIRST + 1);
 	}
 
-	if (PAlletshifter.check()) {
-		ChangePalettePeriodically();
+	if (PaletteBlender.check()) {
 		nblendPaletteTowardPalette(currentPalette, targetPalette, CHNGSPEED);
 	}
 
@@ -91,7 +80,6 @@ void loop() {
 		if (background_mode_last != BACKGROUND_GLITTER) add_glitter(3); //prime the glitter
 		if (GlitterSpeed.check()) add_glitter(1);
 	}
-
 
 	//update the array
 	for (uint8_t y = 0; y < 16; y++) {
@@ -105,24 +93,17 @@ void loop() {
 	//100hz framerate
 	if (timer_100hz.check()) {
 		oled_update();
-
 		FastLED.show();
-
 		elwire_output();
 	}
 
-	//if (Changemode.check()) {
-
-	//	   background_mode++;
-	//	  if ( background_mode >  BACKGROUND_GLITTER) background_mode = BACKGROUND_FFT_FIRST;
-	//	  Serial.println(background_mode);
-	//}
+	if (timer_1hz.check()) {
+		//keep re-initing the screen for hot plug support.
+		oled_reint();
+	}
 
 	//snapshot the last image if we changed modes
 	if (background_mode != background_mode_last) memcpy(Snapshot_Array, Background_Array, 24 * 16 * sizeof(CRGB));
-
-
-
 
 	background_mode_last = background_mode;
 }
@@ -136,13 +117,8 @@ void add_glitter(uint8_t points) {
 	}
 }
 
-void ChangePalettePeriodically()
+void ChangeTargetPalette(uint8_t requested_palette)
 {
-	uint8_t secondHand = ((millis() / 1000) / HOLD_PALETTES_X_TIMES_AS_LONG) % 60;
-	static uint8_t lastSecond = 99;
-
-	if (lastSecond != secondHand) {
-		lastSecond = secondHand;
 		CRGB r = CHSV(HUE_RED, 255, 255);
 		CRGB o = CHSV(HUE_ORANGE, 255, 255);
 		CRGB y = CHSV(HUE_YELLOW, 255, 255);
@@ -155,48 +131,20 @@ void ChangePalettePeriodically()
 		CRGB bl = CRGB::Black;
 		CRGB w = CRGB::White;
 		CRGB ra = CHSV(75, 255, 255);
-		if (secondHand == 0) {
-			// targetPalette = CRGBPalette16( bl, bl, bl, bl, bl, bl, bl, bl, w, w, b, b, b, b, b, bl);
-			targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, w, w, w, b, b, b, b, b, bl);
-		}
-		if (secondHand == 5) {
-			//targetPalette = CRGBPalette16( bl, bl, bl, bl, bl, bl, bl, bl, w, a, g, g, g, r, bl, bl);
-			targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, w, w, a, g, g, g, r, bl, bl);
-		}
-		if (secondHand == 10) {
-			// targetPalette = CRGBPalette16( bl, bl, bl, bl, bl, bl, bl, bl, a, p, pi, pi, pi, r, bl, bl);
-			targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, a, a, p, pi, pi, pi, r, bl, bl);
-		}
-		if (secondHand == 15) {
-			//  targetPalette = CRGBPalette16( bl, bl, bl, bl, bl, bl, bl, bl, g, a, b, b, b, b, bl, bl);
-			targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, g, g, a, b, b, b, b, bl, bl);
-		}
-		if (secondHand == 20) {
-			targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, p, p, p, y, y, bl, bl, bl, bl);
-		}
-		if (secondHand == 25) {
-			targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, a, a, a, y, y, y, y, bl, bl);
-		}
-		if (secondHand == 30) {
-			targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, b, b, r, bl, bl, bl, bl, bl, bl);
-		}
-		if (secondHand == 35) {
-			targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, o, o, o, p, bl, bl, bl, bl, bl);
-		}
-		if (secondHand == 40) {
-			targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, r, r, o, y, g, bl, bl, bl, bl);
-		}
-		if (secondHand == 45) {
-			targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, b, b, b, a, ra, ra, bl, bl, bl);
-		}
-		if (secondHand == 50) {
-			targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, r, r, r, random8(), random8(), bl, bl, bl, bl);
-		}
-		if (secondHand == 55) {
-			targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, b, b, p, pi, r, bl, bl, bl, bl);
-		}
-	}
+		if (requested_palette == 0) { targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, w, w, b, b, b, b, b, bl); }
+		if (requested_palette == 1) { targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, w, a, g, g, g, r, bl, bl); }
+		if (requested_palette == 2) { targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, a, p, pi, pi, pi, r, bl, bl); }
+		if (requested_palette == 3) { targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, g, a, b, b, b, b, bl, bl); }
+		if (requested_palette == 4) { targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, p, p, y, y, bl, bl, bl, bl); }
+		if (requested_palette == 5) { targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, a, a, y, y, y, y, bl, bl); }
+		if (requested_palette == 6) { targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, b, r, bl, bl, bl, bl, bl, bl); }
+		if (requested_palette == 7) { targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, o, o, p, bl, bl, bl, bl, bl); }
+		if (requested_palette == 8) { targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, r, o, y, g, bl, bl, bl, bl); }
+		if (requested_palette == 9) { targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, b, b, a, ra, ra, bl, bl, bl); }
+		if (requested_palette == 10) { targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, r, r, random8(), random8(), bl, bl, bl, bl); }
+		if (requested_palette == 11) { targetPalette = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, b, p, pi, r, bl, bl, bl, bl); }
 }
+
 uint16_t XY(uint16_t x, uint16_t y) {
 
 	uint16_t tempindex = 0;

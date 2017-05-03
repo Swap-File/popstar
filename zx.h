@@ -30,34 +30,38 @@
 #define GESTURE_HOVER_RIGHT 7
 #define GESTURE_HOVER_UP 8
 
-
+#define ORDER_RESET_TIMEOUT 2000
+#define I2C_BUS_TIMEOUT 30
 
 typedef struct {
-	uint8_t    speed;
-	uint32_t    gesture_time;
-	uint8_t    gesture;
-	uint8_t    time;
-	uint8_t    x;
-	uint8_t    z;
-	uint8_t    x_filtered;
-	uint8_t    z_filtered;
-	bool       gesture_fresh;
-	bool       zx_fresh;
-	uint8_t    status;
-	uint8_t    address;
-	uint8_t    order;
+	uint8_t    address; //the i2c address of the sensor
+	uint8_t    status; //internal status
+
+	uint8_t    gesture_speed; //the speed of the gesture
+	uint32_t   gesture_time; //when a gesture happened
+	uint8_t    gesture; //the gesture itself
+	bool       gesture_fresh; //if a gesture has been processed
+
+	uint8_t    zx_time;
+	uint8_t    x;  //the x coord of the sensor
+	uint8_t    z; //the z cord of the sensor
+	bool       zx_fresh;// if the coords have been processed
+
+	uint8_t    order;  //0 is not in use, sequential from there in order of activation
+
 } zx_sensor;
 
+extern zx_sensor* sensor_first;
+extern zx_sensor* sensor_second;
 extern zx_sensor sensor1;
 extern zx_sensor sensor2;
 extern zx_sensor* current_sensor;
 
 void zx_init(void);
 void zx_update(void);
-
-
-extern zx_sensor sensor1;
-extern zx_sensor sensor2;
+void zx_update_order(void);
+void zx_reset_flags(void);
+void zx_next_sensor(void);
 
 #endif
 

@@ -23,6 +23,10 @@ void oled_init(void) {
 
 }
 
+void oled_reint(void) {
+	oled.reinit();
+}
+
  void graph_gesture(zx_sensor *sensor, uint8_t x, uint8_t y);
  void display_gesture_text(uint8_t gesture);
 #define BACKGROUND_OFFSET_X 19
@@ -109,8 +113,8 @@ pitch = 7-constrain(pitch,0,7);
 }
 
 void graph_gesture(zx_sensor *sensor,uint8_t x, uint8_t y) {
-	int tempx = map(sensor->x_filtered, 0, 240, 0, 16);
-	int tempy = map(sensor->z_filtered, 0, 240, 0, 16);
+	int tempx = map(sensor->x, 0, 240, 0, 16);
+	int tempy = map(sensor->z, 0, 240, 0, 16);
 	tempx = constrain(tempx, 0, 15);
 	tempy = constrain(tempy, 0, 15);
 	//oled.drawPixel(x + 1 + constrain(tempx, 0, 15), y + 1 + constrain(tempy, 0, 15), WHITE);

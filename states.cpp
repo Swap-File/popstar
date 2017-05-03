@@ -5,9 +5,6 @@
 #define UNLOCK_GESTURE_TIMEOUT 400
 uint32_t unlock_timer = 0;
 
-zx_sensor* sensor_first = &sensor1;
-zx_sensor* sensor_second = &sensor2;
-
 void state_update() {
 
 	if (sensor1.gesture_fresh) {
@@ -16,17 +13,17 @@ void state_update() {
 
 		if (background_mode < BACKGROUND_FIRST) background_mode = BACKGROUND_LAST;
 		if (background_mode > BACKGROUND_LAST) background_mode = BACKGROUND_FIRST;
-
 	}
 
-	if (sensor1.order == 1) {
-		 sensor_first = &sensor1;
-		 sensor_second = &sensor2;
+	if (sensor2.gesture_fresh) {
+		if (sensor2.gesture == GESTURE_LEFT) requested_palette--;
+		if (sensor2.gesture == GESTURE_RIGHT) requested_palette++;
+	
+		if (requested_palette < 0) requested_palette = 11;
+		if (requested_palette > 11) requested_palette = 0;
+		ChangeTargetPalette(requested_palette);
 	}
-	else {
-		 sensor_first = &sensor2;
-		 sensor_second = &sensor1;
-	}
+
 
 	if (sensor_first->gesture_fresh) {
 		if (sensor_first->gesture == GESTURE_NONE) unlock_timer = millis();

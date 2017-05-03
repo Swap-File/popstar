@@ -8,8 +8,8 @@
 #else
 	#include "WProgram.h"
 #endif
-void state_update(void);
 
+void state_update(void);
 
 
 #define MENU_LOCKED 128
@@ -20,8 +20,6 @@ void state_update(void);
 #define MENU_ROOT_COLORS 130
 #define MENU_ROOT_COLORS_TXT "COLORS"
 #define MENU_ROOT_LAST 130
-
-
 
 #endif
 

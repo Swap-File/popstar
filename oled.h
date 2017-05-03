@@ -16,7 +16,7 @@
 #define OLED_CS     22
 #define OLED_RESET  15
 
-
+void oled_reint(void);
 void oled_init(void);
 void oled_update(void);
 
