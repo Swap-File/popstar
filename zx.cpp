@@ -1,8 +1,7 @@
 #include "zx.h"
+
 #include <i2c_t3.h>
 #include <Metro.h>
-
-
 
 static uint8_t state = 0;  //state machine to space out DMA requests
 static uint8_t fps = 0;  //simple FPS counter 

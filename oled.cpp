@@ -1,5 +1,6 @@
 
 #include "oled.h"
+#include "el.h"
 #define USE_OCTOWS2811
 #include <OctoWS2811.h>
 #include "FastLED.h"
@@ -11,7 +12,6 @@
 #define GESTURE_DISPLAY_TIME 400
 
 Adafruit_SSD1306 oled(OLED_DC, OLED_RESET, OLED_CS);
-
 
 void oled_init(void) {
 	oled.begin(SSD1306_SWITCHCAPVCC);
@@ -37,6 +37,7 @@ void oled_reint(void) {
 #define SENSOR1_Y 0
 #define SENSOR2_X 48
 #define SENSOR2_Y 0
+
 void oled_update(void) {
 
 	oled.clearDisplay();
@@ -53,30 +54,22 @@ void oled_update(void) {
 
 	//draw EL wire indicators
 	for (uint8_t i = 0; i < 6; i++) {
-		if (EL_Strips[i]) {
+		if (bitRead(EL_data, i)) {
 			oled.drawLine(EL_OFFSET_X + 1, 2 + EL_OFFSET_Y + (i << 1), EL_OFFSET_X + 12, 2 + EL_OFFSET_Y + (i << 1), WHITE);
 			//oled.drawLine(EL_OFFSET_X + 1, 18+2 + EL_OFFSET_Y + (i << 1), EL_OFFSET_X + 12, 18 + 2 + EL_OFFSET_Y + (i << 1), WHITE);
 		}
 	}
-	if (EL_Strips[6]) oled.drawRect(EL_OFFSET_X, EL_OFFSET_Y, 14, 19, WHITE);
-	if (EL_Strips[7]) oled.drawRect(EL_OFFSET_X+2, EL_OFFSET_Y+14, 10, 3, WHITE);
+	if (bitRead(EL_data,6)) oled.drawRect(EL_OFFSET_X, EL_OFFSET_Y, 14, 19, WHITE);
+	if (bitRead(EL_data,7)) oled.drawRect(EL_OFFSET_X+2, EL_OFFSET_Y+14, 10, 3, WHITE);
 
 
 	//Draw hand indicators
 
 	oled.setCursor(16, 40);
 	
-	switch (menu_location) {
-	case MENU_LOCKED:
-		oled.print(MENU_LOCKED_TXT);
-		break;
-	case MENU_ROOT_EFFECTS:
-		oled.print(MENU_ROOT_EFFECTS_TXT);
-		break;
-	case MENU_ROOT_COLORS:
-		oled.print(MENU_ROOT_COLORS_TXT);
-		break;	
-	}
+
+	oled.print(menu_master[menu_x][menu_y]);
+
 
 	int pitch = map(pitch_compensated, 13500, 22500, 0, 8);
 

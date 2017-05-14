@@ -1,4 +1,3 @@
-
 #include "fft.h"
 
 static void calcfftcolor(CHSV * temp_color, uint8_t input);
@@ -28,8 +27,6 @@ void fft_math(void) {
 	for (uint8_t i = 0; i < 16; i++) {
 		int16_t n = 1000 * fft256_1.read((i * 2), (i * 2) + 2);
 
-	
-
 		//de-emphasize lower frequencies
 		switch (i) {
 		case 0:  n = max(n - 100, 0); break;
@@ -38,7 +35,6 @@ void fft_math(void) {
 		case 3:  n = max(n - 10, 0);  break;
 		default: n = max(n - 3, 0);   break;
 		}
-
 
 		//falloff controll
 		FFTdisplayValueMax16[i] = max(max(FFTdisplayValueMax16[i] * .97, n), 4);
@@ -62,10 +58,6 @@ void fft_math(void) {
 	for (uint8_t i = 0; i < 10; i++) {
 		band[i] = FFTdisplayValue16[i];
 		band[i] /= 400;
-	}
-
-	for (uint8_t i = 0; i < 8; i++) {
-		EL_Strips[i] = (millis() - FFTdisplayValueMax16time[i] < 150) ? true : false;
 	}
 	 
 }
@@ -163,7 +155,6 @@ void calcfftcolor(CHSV * temp_color, uint8_t input) {
 }
 CHSV map_hsv(uint8_t input, uint8_t in_min, uint8_t in_max, CHSV* out_starting, CHSV* out_ending) {
 
-
 	if (input <= in_min) return CHSV(*out_starting);
 	if (input >= in_max) return CHSV(*out_ending);
 
@@ -175,7 +166,6 @@ CHSV map_hsv(uint8_t input, uint8_t in_min, uint8_t in_max, CHSV* out_starting, 
 	else if ((int16_t)(out_starting->h) - (((int16_t)out_ending->h) - 255) <= 127) {
 		shortest_path -= 256; //rollunder
 	}
-
 
 	return CHSV(
 		((input - in_min) * (shortest_path - out_starting->h + 1) / (in_max - in_min + 1) + out_starting->h), \

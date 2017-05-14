@@ -1,5 +1,3 @@
-
-
 #include "coprocessors.h"
 #include <FastCRC.h>
 #include <cobs.h> 
@@ -29,11 +27,8 @@ int32_t roll_compensated;
 
 void elwire_output(void){		//el wire
 	uint8_t raw_buffer[15];
-	raw_buffer[0] = 0;
-
-	if (FastLED.getBrightness() > 0) {
-		for (uint8_t i = 0; i < 8; i++) if (EL_Strips[i]) bitSet(raw_buffer[0], i);
-	}
+	
+	raw_buffer[0] = EL_data;
 	raw_buffer[1] = el_packet_num++;
 	raw_buffer[2] = CRC8.maxim(raw_buffer, 2);
 
@@ -71,8 +66,6 @@ void SerialUpdate(void) {
 		}
 	}
 }
-
-
 
 void receivePacket(const uint8_t* buffer, size_t size)
 {
