@@ -3,8 +3,7 @@
 static void calcfftcolor(CHSV * temp_color, uint8_t input);
 static CHSV map_hsv(uint8_t input, uint8_t in_min, uint8_t in_max, CHSV* out_starting, CHSV* out_ending);
 
-CHSV color1 = CHSV(0, 255, 255);
-CHSV color2 = CHSV(64, 255, 255);
+
 
 //audio connections
 #include <Audio.h>

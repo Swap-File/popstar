@@ -62,7 +62,7 @@ extern uint8_t FFTdisplayValue16[16]; //max vals for normalization over time
 extern uint8_t FFTdisplayValue8[8]; //max vals for normalization over time
 extern uint8_t FFTdisplayValue12[12];
 extern float band[16];
-extern CRGBPalette16 currentPalette;
+
 extern CRGB Background_Array[24][16];
 extern int8_t background_mode;
 extern int8_t requested_palette;
@@ -72,5 +72,12 @@ extern uint8_t menu_y;
 
 extern uint8_t EL_data;
 
-void ChangeTargetPalette(uint8_t force);
+void ChangeTargetPalette(uint8_t immediate);
+
+extern CRGBPalette16 PaletteNoiseCurrent;
+extern CRGBPalette16 PaletteAniCurrent;
+extern CRGBPalette16 PaletteNoiseTarget;
+extern CRGBPalette16 PaletteAniTarget;
+extern CHSV color1;
+extern CHSV color2;
 #endif

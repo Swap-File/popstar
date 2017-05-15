@@ -1,4 +1,6 @@
+#include "popstar.h"
 #include "noise.h"
+
 static void Caleidoscope1(void);
 static void Caleidoscope2(void);
 static void FillNoise16(void);
@@ -199,7 +201,7 @@ void mapNoiseToLEDsUsingPalette(void)
 			// if this palette is a 'loop', add a slowly-changing base value
 			//if (colorLoop) {
 			//	index += ihue;
-		//	}
+			//}
 
 			// brighten up, as the color palette itself often contains the
 			// light/dark dynamic range desired
@@ -210,11 +212,10 @@ void mapNoiseToLEDsUsingPalette(void)
 				bri = dim8_raw(bri * 2);
 			}
 
-			CRGB color = ColorFromPalette(currentPalette, index, bri);
+			CRGB color = ColorFromPalette(PaletteNoiseCurrent, index, bri);
 			Background_Array[i][j] = color;
 		}
 	}
-
 
 	ihue += 1;
 }
@@ -247,7 +248,7 @@ void mapNoiseToLEDsUsingPalette2(void)
 				bri = dim8_raw(bri * 3);
 			}
 
-			CRGB color = ColorFromPalette(currentPalette, index, bri);
+			CRGB color = ColorFromPalette(PaletteNoiseCurrent, index, bri);
 			Background_Array[i][j] = color;
 		}
 	}

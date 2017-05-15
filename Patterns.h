@@ -10,7 +10,6 @@ void drawFrame_IncrementalDrift() {
     uint8_t x = beatcos8((17 - i) * 2, MATRIX_CENTER_X - i, MATRIX_CENTER_X + i);
     uint8_t y = beatsin8((17 - i) * 2, MATRIX_CENTER_Y - i, MATRIX_CENTER_Y + i);
 
-	Serial.print("here");
     if (x < MATRIX_WIDTH && y < MATRIX_HEIGHT)    Pixel(x, y, color);
     
   }
@@ -53,7 +52,8 @@ void drawFrame_glitter
     DimAll(240);
     uint8_t x = random8(24);
     uint8_t y = random8(16);
-    Background_Array[x][y] += CHSV(random8(255), 200, 255);
+   Background_Array[x][y] += CHSV(random8(255), 200, 255);
+//	Pixel(x, y, random8(255));
   }
 }
 

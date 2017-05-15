@@ -15,15 +15,15 @@ static uint8_t incoming_decoded_buffer[INCOMING_BUFFER_SIZE];
 uint8_t crc_error = 0;
 uint8_t framing_error = 0;
 
-static int16_t yaw_raw;  //yaw pitch and roll in degrees * 100
-static int16_t pitch_raw;
-static int16_t roll_raw;
+static int16_t yaw_raw = 18000;  //yaw pitch and roll in degrees * 100
+static int16_t pitch_raw = 18000;
+static int16_t roll_raw = 18000;
 static int32_t yaw_offset = 0;  //yaw pitch and roll in degrees * 100
 static int32_t pitch_offset = 0;
 static int32_t roll_offset = 0;
-int32_t yaw_compensated;  //yaw pitch and roll in degrees * 100
-int32_t pitch_compensated;
-int32_t roll_compensated;
+int32_t yaw_compensated = 18000;  //yaw pitch and roll in degrees * 100
+int32_t pitch_compensated = 18000;
+int32_t roll_compensated = 18000;
 
 void elwire_output(void){		//el wire
 	uint8_t raw_buffer[15];

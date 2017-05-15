@@ -87,7 +87,7 @@ void drawFrame_Snake_Setup() {
 void drawFrame_Snake() {
   DimAll(255);
 
-  fill_palette(colors, SNAKE_LENGTH, initialHue++, 5, currentPalette, 255, LINEARBLEND);
+  fill_palette(colors, SNAKE_LENGTH, initialHue++, 5, PaletteAniCurrent, 255, LINEARBLEND);
 
   for (int i = 0; i < snakeCount; i++) {
     Snake* snake = &snakes[i];

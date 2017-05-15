@@ -8,6 +8,8 @@
 #endif
 
 #include "popstar.h"
+
+
 boolean fft_check(void);
 void fft_init(void);
 void fft_math(void);

@@ -1,7 +1,7 @@
 
 
 CRGB ColorFromCurrentPalette(uint8_t index = 0, uint8_t brightness = 255) {
-  return ColorFromPalette(currentPalette2, index, brightness);
+  return ColorFromPalette(PaletteAniCurrent, index, brightness);
 }
 
 uint8_t beatcos8(accum88 beats_per_minute, uint8_t lowest = 0, uint8_t highest = 255, uint32_t timebase = 0, uint8_t phase_offset = 0)

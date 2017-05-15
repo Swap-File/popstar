@@ -15,7 +15,7 @@ Adafruit_SSD1306 oled(OLED_DC, OLED_RESET, OLED_CS);
 
 void oled_init(void) {
 	oled.begin(SSD1306_SWITCHCAPVCC);
-	oled.setRotation(2);
+	//oled.setRotation(2);
 	oled.display();
 	oled.setTextSize(1);
 	oled.setTextColor(WHITE);
