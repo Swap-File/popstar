@@ -85,7 +85,7 @@ void drawFrame_Snake_Setup() {
 }
 
 void drawFrame_Snake() {
-  DimAll(255);
+  DimAll(250);
 
   fill_palette(colors, SNAKE_LENGTH, initialHue++, 5, PaletteAniCurrent, 255, LINEARBLEND);
 

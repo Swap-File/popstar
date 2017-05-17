@@ -8,7 +8,7 @@ uint8_t EL_data;
 
 uint32_t el_ani_time = 0;
 
-void update_el(void) {
+void update_el_state(void) {
 
 		if (background_mode >= BACKGROUND_FFT_FIRST && background_mode <= BACKGROUND_NOISE_LAST) EL_Mode = EL_FFT;
 		else if (background_mode >= BACKGROUND_ANI_FIRST && background_mode <= BACKGROUND_ANI_LAST) EL_Mode = EL_ANI;

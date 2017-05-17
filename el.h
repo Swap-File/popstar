@@ -23,7 +23,7 @@ extern uint8_t EL_Mode_last;
 extern uint8_t EL_animation;
 
 
-void update_el(void);
+void update_el_state(void);
 
 #endif
 
