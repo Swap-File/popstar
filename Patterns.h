@@ -15,6 +15,7 @@ void drawFrame_IncrementalDrift() {
 	}
 }
 
+
 void drawFrame_IncrementalDrift2() {
 	uint8_t dim = beatsin8(2, 170, 250);
 	DimAll(dim);
@@ -27,18 +28,18 @@ void drawFrame_IncrementalDrift2() {
 		int y = 0;
 
 		if (i < 16) {
-			x = beatcos8((i + 1) * 2, i + 3, MATRIX_WIDTH - i + 3);
+			x = beatcos8((i + 1) * 2, i + 3, MATRIX_HEIGHT - i + 3);
 			y = beatsin8((i + 1) * 2, i, MATRIX_HEIGHT - i);
 			color = ColorFromCurrentPalette(i * 14);
 		}
 		else
 		{
-			x = beatsin8((24 - i) * 2, MATRIX_WIDTH - i + 3, i + 1 + 3);
+			x = beatsin8((24 - i) * 2, MATRIX_HEIGHT - i + 3, i + 1 + 3);
 			y = beatcos8((24 - i) * 2, MATRIX_HEIGHT - i, i + 1);
 			color = ColorFromCurrentPalette((31 - i) * 14);
 		}
 
-		if (x < 24 && y < 16) Background_Array[x][y] = color;
+		if (x < 24 && y < 16 && y >= 0 && x >=0) Background_Array[x][y] = color;
 	}
 
 	//blank the center pixel 

@@ -13,7 +13,7 @@
 #define EL_ANI_LEFT 30
 #define EL_ANI_RIGHT 20 
 #define EL_ANI_BOOT  10
-
+#define EL_ANI_OFF  40
 #define EL_OFF 0
 #define EL_ANI 1
 #define EL_FFT 2

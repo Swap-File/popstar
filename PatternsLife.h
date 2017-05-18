@@ -41,7 +41,6 @@ int neighbours(int x, int y) {
 void drawFrame_Life_Setup() {
 	for (uint8_t y = 0; y < MATRIX_HEIGHT; y++) {
 		for (uint8_t x = 0; x < MATRIX_WIDTH; x++) {
-			Background_Array[x][y] = CRGB::Black;
 			world[x][y].alive = 0;
 			world[x][y].prev = 0;
 			world[x][y].prev2 = 0;
@@ -54,7 +53,7 @@ void drawFrame_Life_Setup() {
 
 uint8_t generations = 0;
 void drawFrame_Life() {
-	
+	DimAll(250);
 	// Display current generation
 	for (int i = 0; i < MATRIX_WIDTH; i++) {
 		for (int j = 0; j < MATRIX_HEIGHT; j++) {

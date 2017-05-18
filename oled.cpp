@@ -13,6 +13,9 @@
 
 Adafruit_SSD1306 oled(OLED_DC, OLED_RESET, OLED_CS);
 
+void print_background(void);
+void print_menu(void);
+
 void oled_init(void) {
 	oled.begin(SSD1306_SWITCHCAPVCC);
 	//oled.setRotation(2);
@@ -67,8 +70,18 @@ void oled_update(void) {
 
 	oled.setCursor(16, 40);
 	
+	if (menu_state == MENU_OFF) {
+		oled.print("OFF");
+	}
+	else if (menu_state == MENU_ON) {
+		print_background();
+	}
+	else if (menu_state > MENU_LIST_FIRST) {
+		print_menu();
+	}
 
-	oled.print(menu_master[menu_x][menu_y]);
+	
+	
 
 
 	int pitch = map(pitch_compensated, 13500, 22500, 0, 8);
@@ -117,8 +130,8 @@ void graph_gesture(zx_sensor *sensor,uint8_t x, uint8_t y) {
 
 	oled.setCursor(x, y + 17);
 
-	if (sensor->order == 0)  oled.print(" ");
-	else                    oled.print(sensor->order);
+	//if (sensor->order == 0)  oled.print(" ");
+	//else                    oled.print(sensor->order);
 
 	if (millis() - sensor->gesture_time < GESTURE_DISPLAY_TIME) {
 		display_gesture_text(sensor->gesture);
@@ -127,14 +140,130 @@ void graph_gesture(zx_sensor *sensor,uint8_t x, uint8_t y) {
 }
 
 void display_gesture_text(uint8_t gesture) {
-	if (gesture == GESTURE_NONE)				oled.print(" X");
-	else if (gesture == GESTURE_RIGHT)			oled.print(" >");
-	else if (gesture == GESTURE_LEFT)			oled.print(" <");
-	else if (gesture == GESTURE_UP)				oled.print(" ^");
-	else if (gesture == GESTURE_HOVER)			oled.print(" _");
-	else if (gesture == GESTURE_HOVER_LEFT)		oled.print("_<");
-	else if (gesture == GESTURE_HOVER_RIGHT)	oled.print("_>");
-	else if (gesture == GESTURE_HOVER_UP)		oled.print("_^");
+	if (gesture == GESTURE_NONE)				oled.print(" X ");
+	else if (gesture == GESTURE_RIGHT)			oled.print(" > ");
+	else if (gesture == GESTURE_LEFT)			oled.print(" < ");
+	else if (gesture == GESTURE_UP)				oled.print(" ^ ");
+	else if (gesture == GESTURE_HOVER)			oled.print(" _ ");
+	else if (gesture == GESTURE_HOVER_LEFT)		oled.print("_<_");
+	else if (gesture == GESTURE_HOVER_RIGHT)	oled.print("_>_");
+	else if (gesture == GESTURE_HOVER_UP)		oled.print("_^_");
 	else										oled.print(" ?");
+}
+
+void print_background(void) {
+	switch (background_mode) {
+	case BACKGROUND_FFT_HORZ_BARS_LEFT:
+		oled.print("FFT L");
+		break;
+	case  BACKGROUND_FFT_HORZ_BARS_RIGHT:
+		oled.print("FFT L");
+		break;
+	case  BACKGROUND_FFT_HORZ_BARS_STATIC:
+		oled.print("FFT HS");
+		break;
+	case  BACKGROUND_FFT_VERT_BARS_UP:
+		oled.print("FFT U");
+		break;
+	case  BACKGROUND_FFT_VERT_BARS_DOWN:
+		oled.print("FFT D");
+		break;
+	case  BACKGROUND_FFT_VERT_BARS_STATIC:
+		oled.print("FFT VS");
+		break;
+	case  BACKGROUND_NOISE_1:
+		oled.print("NOISE 1");
+		break;
+	case  BACKGROUND_NOISE_2:
+		oled.print("NOISE 2");
+		break;
+	case  BACKGROUND_NOISE_3:
+		oled.print("NOISE 3");
+		break;
+	case  BACKGROUND_NOISE_4:
+		oled.print("NOISE 4");
+		break;
+	case  BACKGROUND_NOISE_5:
+		oled.print("NOISE 5");
+		break;
+	case  BACKGROUND_NOISE_6:
+		oled.print("NOISE 6");
+		break;
+	case  BACKGROUND_NOISE_7:
+		oled.print("NOISE 7");
+		break;
+	case  BACKGROUND_NOISE_8:
+		oled.print("NOISE 8");
+		break;
+	case  BACKGROUND_NOISE_9:
+		oled.print("NOISE 9");
+		break;
+	case  BACKGROUND_NOISE_10:
+		oled.print("NOISE 10");
+		break;
+	case  BACKGROUND_NOISE_11:
+		oled.print("NOISE 11");
+		break;
+	case  BACKGROUND_ANI_GLITTER:
+		oled.print("GLITTER");
+		break;
+	case  BACKGROUND_ANI_JUGGLE:
+		oled.print("JUGGLE");
+		break;
+	case  BACKGROUND_ANI_DRIFT:
+		oled.print("DRIFT 1");
+		break;
+	case  BACKGROUND_ANI_DRIFT2:
+		oled.print("DRIFT 2");
+		break;
+	case  BACKGROUND_ANI_MUNCH:
+		oled.print("MUNCH");
+		break;
+	case  BACKGROUND_ANI_SNAKE:
+		oled.print("SNAKE");
+		break;
+	case  BACKGROUND_ANI_WAVE:
+		oled.print("WAVE");
+		break;
+	case  BACKGROUND_ANI_LIFE:
+		oled.print("LIFE");
+		break;
+	default:
+		oled.print("?");
+		break;
+	}
+}
+
+void print_menu(void) {
+	switch (menu_state) {
+	case MENU_TOGGLE_AUTO_BACKGROUND:
+		if(background_auto) oled.print("AUTO FX");
+		else				oled.print("MAN FX");
+		break;
+	case  MENU_TOGGLE_AUTO_COLOR:
+		if (palette_auto) oled.print("AUTO COLOR");
+		else				 oled.print("MAN COLOR");
+		break;
+	case  MENU_ENTER_ANI_MODE:
+		oled.print("ENTER ANI?");
+		break;
+	case  MENU_ENTER_NOISE_MODE:
+		oled.print("ENTER SND?");
+		break;
+	case  MENU_TURN_OFF:
+		oled.print("SHUTDOWN?");
+		break;
+	case  MENU_TOGGLE_SPOTLIGHT:
+		if (spotlight_on)	oled.print("SPOT ON");
+		else				oled.print("SPOT OFF");
+		break;
+	case  MENU_TOGGLE_IR_BONUS:
+		if (ir_on)			oled.print("IR ON");
+		else				oled.print("IR OFF");
+		break;
+	default:
+		oled.print("?");
+		break;
+	}
 }
 

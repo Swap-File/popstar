@@ -5,7 +5,6 @@ static void Caleidoscope1(void);
 static void Caleidoscope2(void);
 static void FillNoise16(void);
 static void FillNoise8(void);
-static void mapNoiseToLEDsUsingPalette(void);
 static void mapNoiseToLEDsUsingPalette2(void);
 //static uint16_t speed = 0; // speed is set dynamically once we've started up
 static uint16_t scale = 2000; // scale is set dynamically once we've started up
@@ -184,7 +183,7 @@ static void FillNoise8(void) {
 		}
 	}
 }
-
+/*
 void mapNoiseToLEDsUsingPalette(void)
 {
 	static uint8_t ihue = 0;
@@ -219,7 +218,7 @@ void mapNoiseToLEDsUsingPalette(void)
 
 	ihue += 1;
 }
-
+*/
 
 void mapNoiseToLEDsUsingPalette2(void)
 {

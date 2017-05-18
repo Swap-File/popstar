@@ -29,11 +29,6 @@ void zx_init() {
 
 void zx_update() {
 
-	//clear all fresh indicators if not cleared via state machine
-	sensor1.zx_fresh = 0;
-	sensor2.zx_fresh = 0;
-	sensor1.gesture_fresh = 0;
-	sensor2.gesture_fresh = 0;
 
 	if (Wire.done() && (state % 2)) { //check if dma transaction is done, all odd states are wait to finish
 		state++;  //go to next even state
@@ -86,7 +81,7 @@ void zx_update() {
 		current_sensor->x = (current_sensor->x >> 1) + (Wire.read() >> 1);
 		current_sensor->z = (current_sensor->z >> 1) + (i2c_temp_data >> 1);
 		current_sensor->zx_fresh = true;
-		current_sensor->zx_time = millis();
+		current_sensor->zx_time = millis();		
 		zx_update_order();
 		state = 14; //dont wait, go immediately to reply
 	}
@@ -98,6 +93,7 @@ void zx_update() {
 			state++;
 		}
 		else {
+
 			state = 24; //goto done
 		}
 	}

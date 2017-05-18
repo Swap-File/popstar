@@ -40,15 +40,15 @@ CRGB Background_Array[24][16]; //actual background Array
 //auto update true or false
 boolean palette_auto = true;
 boolean background_auto = true;
-
+boolean spotlight_on = false;
+boolean ir_on = false;
 
 float voltage = 24.0;
 
 uint32_t ani_timer_delay = 5;
 uint32_t ani_timer = 0;
 
-uint8_t menu_x = 0;
-uint8_t menu_y = 0;
+
 #define MATRIX_WIDTH 24
 #define MATRIX_HEIGHT 16
 const int MATRIX_CENTER_X = MATRIX_WIDTH / 2;
@@ -116,7 +116,8 @@ void loop() {
 	}
 
 	update_el_state();
-	 
+
+	zx_update(); //initiate i2c background DMA Transfers
 	if (background_mode <= BACKGROUND_ANI_LAST && background_mode >= BACKGROUND_ANI_FIRST) {
 
 		if (background_mode != background_mode_last || millis() - ani_timer > ani_timer_delay) {
@@ -145,16 +146,16 @@ void loop() {
 				break;
 			case BACKGROUND_ANI_DRIFT2:
 				drawFrame_IncrementalDrift2();
-				ani_timer_delay = 10;
+				ani_timer_delay = 15;
 				break;
 			case BACKGROUND_ANI_WAVE:
 				drawFrame_wave();
-				ani_timer_delay = 10;
+				ani_timer_delay = 15;
 				break;
 			case BACKGROUND_ANI_LIFE:
 				if (background_mode_last != background_mode) drawFrame_Life_Setup();
 				drawFrame_Life();
-				ani_timer_delay = 10;
+				ani_timer_delay = 15;
 				break;
 			}
 			ani_timer = millis();
@@ -165,14 +166,14 @@ void loop() {
 	for (uint8_t y = 0; y < 16; y++) {
 		for (uint8_t x = 0; x < 24; x++) {
 			CRGB final_color = CRGB(0, 0, 0);
-			final_color = Background_Array[x][y];
+			if (menu_state != MENU_OFF) final_color = Background_Array[x][y];
 			Output_Array[XY(x, y)] = final_color;
 		}
 	}
 
 	//update internal strip
 	for (uint8_t i = 0; i < 8; i++) {
-		Output_Array[i + 1*128] = Background_Array[i][0];
+		Output_Array[i + 1 * 128] = Background_Array[i][0];
 	}
 	//100hz framerate
 	if (timer_100hz.check()) {
@@ -194,14 +195,17 @@ void loop() {
 		palette_change_time = millis();
 	}
 
-	if (millis() - background_change_time > 10000 && background_auto) {//30 second background changer
+	if (millis() - background_change_time > 20000 && background_auto) {//30 second background changer
 		increment_background(1);
 		background_change_time = millis();
 	}
 
 
 	//snapshot the last image if we changed modes
-	if (background_mode != background_mode_last) memcpy(Snapshot_Array, Background_Array, 24 * 16 * sizeof(CRGB));
+	if (background_mode != background_mode_last) {
+		memcpy(Snapshot_Array, Background_Array, 24 * 16 * sizeof(CRGB));
+		background_change_time = millis();
+	}
 	background_mode_last = background_mode;
 }
 
@@ -214,21 +218,21 @@ void ChangeTargetPalette(uint8_t immediate)
 	CRGB o = o_hsv;
 	CHSV y_hsv = CHSV(HUE_YELLOW, 255, 255);
 	CRGB y = y_hsv;
-		CHSV g_hsv = CHSV(HUE_GREEN, 255, 255);
-		CRGB g = g_hsv;
-		CHSV a_hsv = CHSV(HUE_AQUA, 255, 255);
-		CRGB a = a_hsv;
-		CHSV b_hsv = CHSV(HUE_BLUE, 255, 255);
-		CRGB b = b_hsv;
-		CHSV p_hsv = CHSV(HUE_PURPLE, 255, 255);
-		CRGB p = p_hsv;
-		CHSV pi_hsv = CHSV(HUE_PINK, 255, 255);
-		CRGB pi = pi_hsv;
-		CRGB bl = CRGB::Black;
-		CHSV w_hsv = CHSV(0, 255, 255);
-		CRGB w = CRGB::White;
-		CHSV ra_hsv = CHSV(75, 255, 255);
-		CRGB ra = ra_hsv;
+	CHSV g_hsv = CHSV(HUE_GREEN, 255, 255);
+	CRGB g = g_hsv;
+	CHSV a_hsv = CHSV(HUE_AQUA, 255, 255);
+	CRGB a = a_hsv;
+	CHSV b_hsv = CHSV(HUE_BLUE, 255, 255);
+	CRGB b = b_hsv;
+	CHSV p_hsv = CHSV(HUE_PURPLE, 255, 255);
+	CRGB p = p_hsv;
+	CHSV pi_hsv = CHSV(HUE_PINK, 255, 255);
+	CRGB pi = pi_hsv;
+	CRGB bl = CRGB::Black;
+	CHSV w_hsv = CHSV(0, 255, 255);
+	CRGB w = CRGB::White;
+	CHSV ra_hsv = CHSV(75, 255, 255);
+	CRGB ra = ra_hsv;
 
 	requested_palette = (requested_palette + 12) % 12; //wrap palettes
 
@@ -237,23 +241,23 @@ void ChangeTargetPalette(uint8_t immediate)
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, w, w, b, b, b, b, b, bl);
 		PaletteAniTarget = CRGBPalette16(w, w, w, b, b, b, b, b, w, w, w, b, b, b, b, b);
 		color1Target = b_hsv;
-			color2Target = w_hsv;
+		color2Target = w_hsv;
 		break;
 	case 1:
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, w, a, g, g, g, r, bl, bl);
-		PaletteAniTarget = CRGBPalette16(w, a, g,  g, r, w, a, g, g, g, r, w, a, g,  g, r);
+		PaletteAniTarget = CRGBPalette16(w, a, g, g, r, w, a, g, g, g, r, w, a, g, g, r);
 		color1Target = g_hsv;
 		color2Target = a_hsv;
 		break;
 	case 2:
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, a, p, pi, pi, pi, r, bl, bl);
-		PaletteAniTarget = CRGBPalette16(a, p, pi, pi, r, a, p, pi, pi, pi, r, a, p,  pi, pi, r);
+		PaletteAniTarget = CRGBPalette16(a, p, pi, pi, r, a, p, pi, pi, pi, r, a, p, pi, pi, r);
 		color1Target = pi_hsv;
 		color2Target = a_hsv;
 		break;
 	case 3:
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, g, a, b, b, b, b, bl, bl);
-		PaletteAniTarget = CRGBPalette16(g, a, b, b, b,  g, a, b, b,  b, g, a, b, b, b,b );
+		PaletteAniTarget = CRGBPalette16(g, a, b, b, b, g, a, b, b, b, g, a, b, b, b, b);
 		color1Target = b_hsv;
 		color2Target = g_hsv;
 		break;
@@ -265,7 +269,7 @@ void ChangeTargetPalette(uint8_t immediate)
 		break;
 	case 5:
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, a, a, y, y, y, y, bl, bl);
-		PaletteAniTarget = CRGBPalette16(a, a, y, y,  y, a, a, y, y, y, y, a, a, y, y, y );
+		PaletteAniTarget = CRGBPalette16(a, a, y, y, y, a, a, y, y, y, y, a, a, y, y, y);
 		color1Target = a_hsv;
 		color2Target = y_hsv;
 		break;
@@ -283,13 +287,13 @@ void ChangeTargetPalette(uint8_t immediate)
 		break;
 	case 8:
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, r, o, y, g, bl, bl, bl, bl);
-		PaletteAniTarget = CRGBPalette16(r, o, y, g, r, o, y, g, r, o, y, g, r, o, y ,g);
+		PaletteAniTarget = CRGBPalette16(r, o, y, g, r, o, y, g, r, o, y, g, r, o, y, g);
 		color1Target = r_hsv;
 		color2Target = y_hsv;
 		break;
 	case 9:
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, b, b, a, ra, ra, bl, bl, bl);
-		PaletteAniTarget = CRGBPalette16(b, b, a, ra, ra, b, b, a, ra, ra, b, b, a, ra, ra ,b);
+		PaletteAniTarget = CRGBPalette16(b, b, a, ra, ra, b, b, a, ra, ra, b, b, a, ra, ra, b);
 		color1Target = b_hsv;
 		color2Target = ra_hsv;
 		break;
@@ -298,11 +302,11 @@ void ChangeTargetPalette(uint8_t immediate)
 		uint8_t temp1 = random8();
 		uint8_t temp2 = random8();
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, r, r, temp1, temp2, bl, bl, bl, bl);
-		PaletteAniTarget = CRGBPalette16(r, r, temp1, temp2, r, r, temp1, temp2, r, r, temp1, temp2, r, r, temp1, temp2 );
+		PaletteAniTarget = CRGBPalette16(r, r, temp1, temp2, r, r, temp1, temp2, r, r, temp1, temp2, r, r, temp1, temp2);
 		color1Target = r_hsv;
 		color2Target = CHSV(temp1, 255, 255);
 	}
-		break;
+	break;
 	case 11:
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, b, p, pi, r, bl, bl, bl, bl);
 		PaletteAniTarget = CRGBPalette16(b, p, pi, r, b, p, pi, r, b, p, pi, r, b, p, pi, r);

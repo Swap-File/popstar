@@ -69,9 +69,6 @@ extern CRGB Background_Array[24][16];
 extern int8_t background_mode;
 extern int8_t requested_palette;
 
-extern uint8_t menu_x;
-extern uint8_t menu_y;
-
 extern uint8_t EL_data;
 
 void ChangeTargetPalette(uint8_t immediate);
@@ -82,4 +79,10 @@ extern CRGBPalette16 PaletteNoiseTarget;
 extern CRGBPalette16 PaletteAniTarget;
 extern CHSV color1;
 extern CHSV color2;
+
+extern boolean palette_auto;
+extern boolean background_auto;
+
+extern boolean spotlight_on;
+extern boolean ir_on;
 #endif
