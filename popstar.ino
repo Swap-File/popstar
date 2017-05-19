@@ -38,8 +38,8 @@ CRGB Snapshot_Array[24][16];  //snapshot for fades
 CRGB Background_Array[24][16]; //actual background Array
 
 //auto update true or false
-boolean palette_auto = true;
-boolean background_auto = true;
+boolean palette_auto = false;
+boolean background_auto = false;
 boolean spotlight_on = false;
 boolean ir_on = false;
 
@@ -114,10 +114,9 @@ void loop() {
 		if (background_mode <= BACKGROUND_FFT_LAST && background_mode >= BACKGROUND_FFT_FIRST) fft_update_background(background_mode);
 		if (background_mode <= BACKGROUND_NOISE_LAST && background_mode >= BACKGROUND_NOISE_FIRST) Noise(background_mode - BACKGROUND_NOISE_FIRST + 1);
 	}
-
+	zx_update(); //initiate i2c background DMA Transfers
 	update_el_state();
 
-	zx_update(); //initiate i2c background DMA Transfers
 	if (background_mode <= BACKGROUND_ANI_LAST && background_mode >= BACKGROUND_ANI_FIRST) {
 
 		if (background_mode != background_mode_last || millis() - ani_timer > ani_timer_delay) {
@@ -167,7 +166,9 @@ void loop() {
 		for (uint8_t x = 0; x < 24; x++) {
 			CRGB final_color = CRGB(0, 0, 0);
 			if (menu_state != MENU_OFF) final_color = Background_Array[x][y];
+			if (background_mode <= BACKGROUND_NOISE_LAST && background_mode >= BACKGROUND_NOISE_FIRST) final_color += Snapshot_Array[x][y];
 			Output_Array[XY(x, y)] = final_color;
+
 		}
 	}
 
@@ -177,6 +178,11 @@ void loop() {
 	}
 	//100hz framerate
 	if (timer_100hz.check()) {
+		for (uint8_t y = 0; y < 16; y++) {
+			for (uint8_t x = 0; x < 24; x++) {
+				Snapshot_Array[x][y].nscale8(240);
+			}
+		}
 		oled_update();
 		FastLED.show();
 		elwire_output();
@@ -207,6 +213,7 @@ void loop() {
 		background_change_time = millis();
 	}
 	background_mode_last = background_mode;
+	menu_state_last = menu_state;
 }
 
 

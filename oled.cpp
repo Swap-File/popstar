@@ -68,15 +68,15 @@ void oled_update(void) {
 
 	//Draw hand indicators
 
-	oled.setCursor(16, 40);
+	oled.setCursor(0, 40);
 	
 	if (menu_state == MENU_OFF) {
-		oled.print("OFF");
+		oled.print("  OFF");
 	}
 	else if (menu_state == MENU_ON) {
 		print_background();
 	}
-	else if (menu_state > MENU_LIST_FIRST) {
+	else if (menu_state >= MENU_LIST_FIRST) {
 		print_menu();
 	}
 
@@ -229,7 +229,7 @@ void print_background(void) {
 		oled.print("LIFE");
 		break;
 	default:
-		oled.print("?");
+		oled.print("B?");
 		break;
 	}
 }
@@ -262,7 +262,7 @@ void print_menu(void) {
 		else				oled.print("IR OFF");
 		break;
 	default:
-		oled.print("?");
+		oled.print("M?");
 		break;
 	}
 }

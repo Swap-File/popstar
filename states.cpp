@@ -7,9 +7,9 @@
 
 uint8_t menu_state_last = 255;
 uint8_t menu_state = MENU_OFF;
-
+boolean latch_reset = true;
 uint8_t debounce = 0;
-
+uint8_t debounce1 = 0;
 void auto_head_tilt() {
 	if (roll_compensated < 13500)	 background_mode = BACKGROUND_FFT_HORZ_BARS_LEFT;
 	else if (roll_compensated > 22500) background_mode = BACKGROUND_FFT_HORZ_BARS_RIGHT;
@@ -34,6 +34,8 @@ void increment_background(int8_t number) {
 		auto_head_tilt();//override mode if tilting and not in an animation
 	}
 }
+
+
 
 void state_update() {
 	//automatically change head tilt modes
@@ -76,16 +78,20 @@ void state_update() {
 	}
 
 	if (menu_state == MENU_ON) { //kick from on to menu
-		if (sensor2.z < 10 || sensor1.z < 10) debounce++;
-		else  debounce = 0;
+		if ((sensor1.z < 10 || sensor2.z < 10) && latch_reset) 	debounce1++;
+		else 	debounce1 = 0;
 
-		if (debounce == 255) {
-			if (background_mode <= BACKGROUND_ANI_LAST && background_mode >= BACKGROUND_ANI_LAST) menu_state = MENU_ENTER_NOISE_MODE;
+		if (sensor1.z > 10 && sensor2.z > 10) latch_reset = true;
+
+		if (debounce1 == 255) {
+			debounce1 = 0;
+			latch_reset = false;
+			if (background_mode <= BACKGROUND_ANI_LAST && background_mode >= BACKGROUND_ANI_FIRST) menu_state = MENU_ENTER_NOISE_MODE;
 			else  menu_state = MENU_ENTER_ANI_MODE;
 		}
 	}
 
-	if (menu_state >= MENU_LIST_FIRST) { 
+	if (menu_state >= MENU_LIST_FIRST) {
 		//navigate menu left
 		if ((sensor1.gesture_fresh && sensor1.gesture == GESTURE_LEFT) || (sensor2.gesture_fresh && sensor2.gesture == GESTURE_LEFT)) {
 			if (menu_state == MENU_TOGGLE_AUTO_BACKGROUND)		menu_state = MENU_TOGGLE_IR_BONUS;
@@ -109,21 +115,41 @@ void state_update() {
 		}
 		//do actions
 		if ((sensor1.gesture_fresh && sensor1.gesture == GESTURE_UP) || (sensor2.gesture_fresh && sensor2.gesture == GESTURE_UP) || (sensor1.gesture_fresh && sensor1.gesture == GESTURE_HOVER_UP) || (sensor2.gesture_fresh && sensor2.gesture == GESTURE_HOVER_UP)) {
-			if (menu_state == MENU_TOGGLE_AUTO_BACKGROUND)	background_auto = !background_auto;
-			if (menu_state == MENU_TOGGLE_AUTO_COLOR)		palette_auto = !palette_auto;
-			if (menu_state == MENU_ENTER_ANI_MODE)			background_mode = BACKGROUND_ANI_WAVE; //select random?
-			if (menu_state == MENU_ENTER_NOISE_MODE)		background_mode = BACKGROUND_NOISE_6;  //select random?
-			if (menu_state == MENU_TURN_OFF)				menu_state = MENU_OFF;
-			if (menu_state == MENU_TOGGLE_SPOTLIGHT)		spotlight_on = !spotlight_on;
-			if (menu_state == MENU_TOGGLE_IR_BONUS)			ir_on = !ir_on;
+			switch (menu_state) {
+			case MENU_TOGGLE_AUTO_BACKGROUND:
+				background_auto = !background_auto;
+				menu_state = MENU_ON;
+				break;
+			case MENU_TOGGLE_AUTO_COLOR:
+				palette_auto = !palette_auto;
+				menu_state = MENU_ON;
+				break;
+			case MENU_ENTER_ANI_MODE:
+				background_mode = BACKGROUND_ANI_WAVE;
+				menu_state = MENU_ON;
+				break;
+			case MENU_ENTER_NOISE_MODE:
+				background_mode = BACKGROUND_NOISE_6;
+				menu_state = MENU_ON;
+				break;
+			case MENU_TURN_OFF:
+				menu_state = MENU_OFF;
+				break;
+			case MENU_TOGGLE_SPOTLIGHT:
+				spotlight_on = !spotlight_on;
+				menu_state = MENU_ON;
+				break;
+			case MENU_TOGGLE_IR_BONUS:
+				ir_on = !ir_on;
+				menu_state = MENU_ON;
+				break;
+			}		
 		}
 		//exit menu
 		if (sensor2.z > 60 && sensor1.z > 60) debounce++; //make this better?
 		else debounce = 0;
 		if (debounce == 255) menu_state = MENU_ON;
-
 	}
-
 
 	//clear all fresh indicators
 	sensor1.zx_fresh = false;

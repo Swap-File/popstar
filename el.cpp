@@ -11,13 +11,13 @@ uint32_t el_ani_time = 0;
 
 void update_el_state(void) {
 
-	if ((menu_state_last != menu_state) && (menu_state == MENU_OFF)) {
+	if (menu_state == MENU_OFF) {
 		EL_Mode = EL_OFF;
-		EL_animation = EL_ANI_OFF;
+		if (menu_state_last != menu_state) EL_animation = EL_ANI_OFF;
 	}
-	if ((menu_state_last != menu_state) && (menu_state == MENU_ON)) {
+	else if (menu_state == MENU_ON) {
 		EL_Mode = EL_ANI;
-		EL_animation = EL_ANI_BOOT;
+		if (menu_state_last != menu_state) EL_animation = EL_ANI_BOOT;
 	}
 
 
@@ -78,27 +78,27 @@ void update_el_state(void) {
 			break;
 
 		case EL_ANI_RIGHT: //state 20
-			EL_data = 0b11000001;
+			EL_data = 0b11111110;
 			EL_animation--;
 			break;
 		case 19:
-			EL_data = 0b11000010;
+			EL_data = 0b11111101;
 			EL_animation--;
 			break;
 		case 18:
-			EL_data = 0b11000100;
+			EL_data = 0b11111011;
 			EL_animation--;
 			break;
 		case 17:
-			EL_data = 0b11001000;
+			EL_data = 0b11110111;
 			EL_animation--;
 			break;
 		case 16:
-			EL_data = 0b11010000;
+			EL_data = 0b11101111;
 			EL_animation--;
 			break;
 		case 15:
-			EL_data = 0b11100000;
+			EL_data = 0b11011111;
 			EL_animation--;
 			break;
 		case 14:
@@ -106,27 +106,27 @@ void update_el_state(void) {
 			break;
 
 		case EL_ANI_LEFT:
-			EL_data = 0b11100000;
+			EL_data = 0b11011111;
 			EL_animation--;
 			break;
 		case 29:
-			EL_data = 0b11010000;
+			EL_data = 0b11101111;
 			EL_animation--;
 			break;
 		case 28:
-			EL_data = 0b11001000;
+			EL_data = 0b11110111;
 			EL_animation--;
 			break;
 		case 27:
-			EL_data = 0b11000100;
+			EL_data = 0b11111011;
 			EL_animation--;
 			break;
 		case 26:
-			EL_data = 0b11000010;
+			EL_data = 0b11111101;
 			EL_animation--;
 			break;
 		case 25:
-			EL_data = 0b11000001;
+			EL_data = 0b11111110;
 			EL_animation--;
 			break;
 		case 24:
@@ -161,6 +161,7 @@ void update_el_state(void) {
 			break;
 		default:
 			EL_animation = EL_ANI_STOP;
+		break;
 		}
 		el_ani_time = millis();
 	}

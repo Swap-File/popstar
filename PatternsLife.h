@@ -14,14 +14,13 @@ unsigned int density = 20;
 void randomFillWorld() {
 	for (int i = 0; i < MATRIX_WIDTH; i++) {
 		for (int j = 0; j < MATRIX_HEIGHT; j++) {
-			if ((i < 3 || i > MATRIX_WIDTH - 3) || (j < 3 || j > MATRIX_WIDTH - 3)) {
-				if (random(100) < density) {
-					world[i][j].alive = 1;
-					world[i][j].brightness = 255;
-					world[i][j].prev = 1;
-					world[i][j].prev2 = 1;
-					world[i][j].hue = 0;
-				}
+			if (j == 3) j = 21; //skip middle
+			if (random(100) < density) {
+				world[i][j].alive = 1;
+				world[i][j].brightness = 255;
+				world[i][j].prev = 1;
+				world[i][j].prev2 = 1;
+				world[i][j].hue = 0;
 			}
 		}
 	}
