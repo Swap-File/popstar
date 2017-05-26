@@ -14,8 +14,6 @@
 #include<OctoWS2811.h>
 #include "FastLED.h"
 
-
-
 #define kMatrixWidth 24
 #define kMatrixHeight 16
 
@@ -83,6 +81,5 @@ extern CHSV color2;
 extern boolean palette_auto;
 extern boolean background_auto;
 
-extern boolean spotlight_on;
-extern boolean ir_on;
+
 #endif

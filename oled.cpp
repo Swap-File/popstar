@@ -254,12 +254,12 @@ void print_menu(void) {
 		oled.print("SHUTDOWN?");
 		break;
 	case  MENU_TOGGLE_SPOTLIGHT:
-		if (spotlight_on)	oled.print("SPOT ON");
+		if (ir_spot_on)	oled.print("SPOT ON");
 		else				oled.print("SPOT OFF");
 		break;
 	case  MENU_TOGGLE_IR_BONUS:
-		if (ir_on)			oled.print("IR ON");
-		else				oled.print("IR OFF");
+		if (ir_cvg_on)			oled.print("CVG ON");
+		else				oled.print("CVG OFF");
 		break;
 	default:
 		oled.print("M?");

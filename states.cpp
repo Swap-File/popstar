@@ -136,11 +136,13 @@ void state_update() {
 				menu_state = MENU_OFF;
 				break;
 			case MENU_TOGGLE_SPOTLIGHT:
-				spotlight_on = !spotlight_on;
+				ir_spot_on = !ir_spot_on;
+				ir_timer = 0;  // do it now
 				menu_state = MENU_ON;
 				break;
 			case MENU_TOGGLE_IR_BONUS:
-				ir_on = !ir_on;
+				ir_cvg_on = !ir_cvg_on;
+				ir_timer = 0; // do it now
 				menu_state = MENU_ON;
 				break;
 			}		

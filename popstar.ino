@@ -40,8 +40,7 @@ CRGB Background_Array[24][16]; //actual background Array
 //auto update true or false
 boolean palette_auto = false;
 boolean background_auto = false;
-boolean spotlight_on = false;
-boolean ir_on = false;
+
 
 float voltage = 24.0;
 
@@ -249,60 +248,81 @@ void ChangeTargetPalette(uint8_t immediate)
 		PaletteAniTarget = CRGBPalette16(w, w, w, b, b, b, b, b, w, w, w, b, b, b, b, b);
 		color1Target = b_hsv;
 		color2Target = w_hsv;
+		ir_spot_data = SERIAL_SPOT_R1_BUTTON;
+		ir_cvg_data = SERIAL_CVG_R1_BUTTON;
 		break;
 	case 1:
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, w, a, g, g, g, r, bl, bl);
 		PaletteAniTarget = CRGBPalette16(w, a, g, g, r, w, a, g, g, g, r, w, a, g, g, r);
 		color1Target = g_hsv;
 		color2Target = a_hsv;
+		ir_spot_data = SERIAL_SPOT_R5_BUTTON;
+		ir_cvg_data = SERIAL_CVG_R5_BUTTON;
 		break;
 	case 2:
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, a, p, pi, pi, pi, r, bl, bl);
 		PaletteAniTarget = CRGBPalette16(a, p, pi, pi, r, a, p, pi, pi, pi, r, a, p, pi, pi, r);
 		color1Target = pi_hsv;
 		color2Target = a_hsv;
+		ir_spot_data = SERIAL_SPOT_G1_BUTTON;
+		ir_cvg_data = SERIAL_CVG_G1_BUTTON;
+
 		break;
 	case 3:
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, g, a, b, b, b, b, bl, bl);
 		PaletteAniTarget = CRGBPalette16(g, a, b, b, b, g, a, b, b, b, g, a, b, b, b, b);
 		color1Target = b_hsv;
 		color2Target = g_hsv;
+		ir_spot_data = SERIAL_SPOT_G5_BUTTON;
+		ir_cvg_data = SERIAL_CVG_G5_BUTTON;
 		break;
 	case 4:
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, p, p, y, y, bl, bl, bl, bl);
 		PaletteAniTarget = CRGBPalette16(p, p, y, y, p, p, y, y, p, p, y, y, p, p, y, y);
 		color1Target = p_hsv;
 		color2Target = y_hsv;
+		ir_spot_data = SERIAL_SPOT_B1_BUTTON;
+		ir_cvg_data = SERIAL_CVG_B1_BUTTON;
 		break;
 	case 5:
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, a, a, y, y, y, y, bl, bl);
 		PaletteAniTarget = CRGBPalette16(a, a, y, y, y, a, a, y, y, y, y, a, a, y, y, y);
 		color1Target = a_hsv;
 		color2Target = y_hsv;
+		ir_spot_data = SERIAL_SPOT_B5_BUTTON;
+		ir_cvg_data = SERIAL_CVG_B5_BUTTON;
 		break;
 	case 6:
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, b, r, bl, bl, bl, bl, bl, bl);
 		PaletteAniTarget = CRGBPalette16(b, r, b, r, b, r, b, r, b, r, b, r, b, r, b, r);
 		color1Target = r_hsv;
 		color2Target = b_hsv;
+		ir_spot_data = SERIAL_SPOT_W_BUTTON;
+		ir_cvg_data = SERIAL_SPOT_W_BUTTON;
 		break;
 	case 7:
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, o, o, p, bl, bl, bl, bl, bl);
 		PaletteAniTarget = CRGBPalette16(o, o, p, o, o, p, o, o, p, o, o, p, o, o, p, o);
 		color1Target = o_hsv;
 		color2Target = p_hsv;
+		ir_spot_data = SERIAL_SPOT_R1_BUTTON;
+		ir_cvg_data = SERIAL_CVG_R1_BUTTON;
 		break;
 	case 8:
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, r, o, y, g, bl, bl, bl, bl);
 		PaletteAniTarget = CRGBPalette16(r, o, y, g, r, o, y, g, r, o, y, g, r, o, y, g);
 		color1Target = r_hsv;
 		color2Target = y_hsv;
+		ir_spot_data = SERIAL_SPOT_R5_BUTTON;
+		ir_cvg_data = SERIAL_CVG_R5_BUTTON;
 		break;
 	case 9:
 		PaletteNoiseTarget = CRGBPalette16(bl, bl, bl, bl, bl, bl, bl, bl, b, b, a, ra, ra, bl, bl, bl);
 		PaletteAniTarget = CRGBPalette16(b, b, a, ra, ra, b, b, a, ra, ra, b, b, a, ra, ra, b);
 		color1Target = b_hsv;
 		color2Target = ra_hsv;
+		ir_spot_data = SERIAL_SPOT_G1_BUTTON;
+		ir_cvg_data = SERIAL_CVG_G1_BUTTON;
 		break;
 	case 10:
 	{
@@ -312,6 +332,8 @@ void ChangeTargetPalette(uint8_t immediate)
 		PaletteAniTarget = CRGBPalette16(r, r, temp1, temp2, r, r, temp1, temp2, r, r, temp1, temp2, r, r, temp1, temp2);
 		color1Target = r_hsv;
 		color2Target = CHSV(temp1, 255, 255);
+		ir_spot_data = SERIAL_SPOT_G5_BUTTON;
+		ir_cvg_data = SERIAL_CVG_G5_BUTTON;
 	}
 	break;
 	case 11:
@@ -319,6 +341,8 @@ void ChangeTargetPalette(uint8_t immediate)
 		PaletteAniTarget = CRGBPalette16(b, p, pi, r, b, p, pi, r, b, p, pi, r, b, p, pi, r);
 		color1Target = b_hsv;
 		color2Target = r_hsv;
+		ir_spot_data = SERIAL_SPOT_B1_BUTTON;
+		ir_cvg_data = SERIAL_CVG_B1_BUTTON;
 		break;
 	}
 
