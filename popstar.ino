@@ -38,8 +38,8 @@ CRGB Snapshot_Array[24][16];  //snapshot for fades
 CRGB Background_Array[24][16]; //actual background Array
 
 //auto update true or false
-boolean palette_auto = false;
-boolean background_auto = false;
+boolean palette_auto = true;
+boolean background_auto = true;
 
 
 float voltage = 24.0;
@@ -52,7 +52,7 @@ uint32_t ani_timer = 0;
 #define MATRIX_HEIGHT 16
 const int MATRIX_CENTER_X = MATRIX_WIDTH / 2;
 const int MATRIX_CENTER_Y = MATRIX_HEIGHT / 2;
-
+boolean supress_leds = true;
 
 #include "PatternsEffects.h"
 #include "PatternsSnake.h"
@@ -61,13 +61,14 @@ const int MATRIX_CENTER_Y = MATRIX_HEIGHT / 2;
 #include "PatternsLife.h"
 
 Metro timer_1hz = Metro(1000, 1);
+Metro timer_50hz = Metro(50, 1);
 Metro timer_100hz = Metro(10, 1);
 Metro PaletteBlender = Metro(10, 1);
 
 int32_t palette_change_time = 0;
 int32_t background_change_time = 0;
-int8_t background_mode = BACKGROUND_ANI_LAST;
-int8_t background_mode_last = BACKGROUND_ANI_LAST;
+int8_t background_mode = BACKGROUND_ANI_GLITTER;
+int8_t background_mode_last = BACKGROUND_ANI_GLITTER;
 
 uint8_t gHue = 0; // rotating "base color" used by many of the patterns
 
@@ -92,6 +93,7 @@ void setup() {
 	adc->startContinuous(A3, ADC_1);
 }
 
+uint8_t hud_pallet_rotate;
 void loop() {
 
 	zx_update(); //initiate i2c background DMA Transfers
@@ -164,7 +166,7 @@ void loop() {
 	for (uint8_t y = 0; y < 16; y++) {
 		for (uint8_t x = 0; x < 24; x++) {
 			CRGB final_color = CRGB(0, 0, 0);
-			if (menu_state != MENU_OFF) final_color = Background_Array[x][y];
+			if (supress_leds == false) final_color = Background_Array[x][y];
 			if (background_mode <= BACKGROUND_NOISE_LAST && background_mode >= BACKGROUND_NOISE_FIRST) final_color += Snapshot_Array[x][y];
 			Output_Array[XY(x, y)] = final_color;
 
@@ -173,8 +175,9 @@ void loop() {
 
 	//update internal strip
 	for (uint8_t i = 0; i < 8; i++) {
-		Output_Array[i + 1 * 128] = Background_Array[i][0];
+		Output_Array[i + 1 * 128] = ColorFromPalette(PaletteAniTarget,i * 32 + hud_pallet_rotate).nscale8(6);
 	}
+
 	//100hz framerate
 	if (timer_100hz.check()) {
 		for (uint8_t y = 0; y < 16; y++) {
@@ -187,7 +190,10 @@ void loop() {
 		elwire_output();
 	}
 
+	if (timer_50hz.check())  hud_pallet_rotate++;
+
 	if (timer_1hz.check()) {
+		
 		//keep re-initing the screen for hot plug support.
 		oled_reint();
 		voltage = voltage * .95 + .05 * ((uint16_t)adc->analogReadContinuous(ADC_1)) / 3516.083016;
@@ -349,8 +355,8 @@ void ChangeTargetPalette(uint8_t immediate)
 	if (immediate) {
 		color1 = color1Target;
 		color2 = color2Target;
-		PaletteNoiseCurrent = PaletteNoiseTarget;
-		PaletteAniCurrent = PaletteAniTarget;
+		nblendPaletteTowardPalette(PaletteNoiseCurrent, PaletteNoiseTarget, 255);
+		nblendPaletteTowardPalette(PaletteAniCurrent, PaletteAniTarget, 255);
 	}
 
 	palette_change_time = millis();

@@ -5,8 +5,9 @@
 #include "el.h"
 #include "popstar.h"
 
-uint8_t menu_state_last = 255;
+uint8_t menu_state_last = MENU_OFF;
 uint8_t menu_state = MENU_OFF;
+
 boolean latch_reset = true;
 uint8_t debounce = 0;
 uint8_t debounce1 = 0;
@@ -38,6 +39,9 @@ void increment_background(int8_t number) {
 
 
 void state_update() {
+
+	if (EL_animation == EL_ANI_STOP && menu_state != MENU_OFF) 	supress_leds = false;
+
 	//automatically change head tilt modes
 	if (background_mode >= BACKGROUND_FFT_FIRST && background_mode <= BACKGROUND_FFT_LAST) {
 		auto_head_tilt();
@@ -53,20 +57,19 @@ void state_update() {
 				increment_background(1);
 				EL_animation = EL_ANI_RIGHT;
 			}
+		}
 
-
-			if (sensor2.gesture_fresh) {
-				if (sensor2.gesture == GESTURE_LEFT) {
-					requested_palette--;
-					EL_animation = EL_ANI_LEFT;
-				}
-				if (sensor2.gesture == GESTURE_RIGHT) {
-					requested_palette++;
-					EL_animation = EL_ANI_RIGHT;
-				}
-
-				ChangeTargetPalette(1);
+		if (sensor2.gesture_fresh) {
+			if (sensor2.gesture == GESTURE_LEFT) {
+				requested_palette--;
+				EL_animation = EL_ANI_LEFT;
 			}
+			else if (sensor2.gesture == GESTURE_RIGHT) {
+				requested_palette++;
+				EL_animation = EL_ANI_RIGHT;
+			}
+			ChangeTargetPalette(1);
+
 		}
 	}
 
@@ -134,6 +137,7 @@ void state_update() {
 				break;
 			case MENU_TURN_OFF:
 				menu_state = MENU_OFF;
+				supress_leds = true;
 				break;
 			case MENU_TOGGLE_SPOTLIGHT:
 				ir_spot_on = !ir_spot_on;
@@ -145,8 +149,9 @@ void state_update() {
 				ir_timer = 0; // do it now
 				menu_state = MENU_ON;
 				break;
-			}		
+			}
 		}
+
 		//exit menu
 		if (sensor2.z > 60 && sensor1.z > 60) debounce++; //make this better?
 		else debounce = 0;

@@ -3,8 +3,8 @@
 #include "states.h"
 
 uint8_t EL_Mode = EL_OFF;
-uint8_t EL_Mode_last = EL_Mode;
-uint8_t EL_animation = 0;
+uint8_t EL_Mode_last = EL_OFF;
+uint8_t EL_animation = EL_ANI_STOP;
 uint8_t EL_data;
 
 uint32_t el_ani_time = 0;
@@ -20,9 +20,10 @@ void update_el_state(void) {
 		if (menu_state_last != menu_state) EL_animation = EL_ANI_BOOT;
 	}
 
-
-	if (background_mode >= BACKGROUND_FFT_FIRST && background_mode <= BACKGROUND_NOISE_LAST) EL_Mode = EL_FFT;
-	else if (background_mode >= BACKGROUND_ANI_FIRST && background_mode <= BACKGROUND_ANI_LAST) EL_Mode = EL_ANI;
+	if (menu_state != MENU_OFF) {
+		if (background_mode >= BACKGROUND_FFT_FIRST && background_mode <= BACKGROUND_NOISE_LAST) EL_Mode = EL_FFT;
+		else if (background_mode >= BACKGROUND_ANI_FIRST && background_mode <= BACKGROUND_ANI_LAST) EL_Mode = EL_ANI;
+	}
 
 	if (EL_Mode == EL_OFF) {
 		if (EL_animation == EL_ANI_STOP)  EL_data = 0;
@@ -42,23 +43,23 @@ void update_el_state(void) {
 	if (millis() - el_ani_time > 100) {
 		switch (EL_animation) {
 		case EL_ANI_BOOT: //state 10
-			EL_data = 0b00000001;
+			EL_data = 0b00100000;
 			EL_animation--;
 			break;
 		case 9:
-			EL_data = 0b00000011;
+			EL_data = 0b00110000;
 			EL_animation--;
 			break;
 		case 8:
-			EL_data = 0b00000111;
+			EL_data = 0b001110000;
 			EL_animation--;
 			break;
 		case 7:
-			EL_data = 0b00001111;
+			EL_data = 0b00111100;
 			EL_animation--;
 			break;
 		case 6:
-			EL_data = 0b00011111;
+			EL_data = 0b00111110;
 			EL_animation--;
 			break;
 		case 5:
@@ -137,23 +138,23 @@ void update_el_state(void) {
 			EL_animation--;
 			break;
 		case 39:
-			EL_data = 0b00011111;
+			EL_data = 0b00111110;
 			EL_animation--;
 			break;
 		case 38:
-			EL_data = 0b00001111;
+			EL_data = 0b00111100;
 			EL_animation--;
 			break;
 		case 37:
-			EL_data = 0b00000111;
+			EL_data = 0b00111000;
 			EL_animation--;
 			break;
 		case 36:
-			EL_data = 0b00000011;
+			EL_data = 0b00110000;
 			EL_animation--;
 			break;
 		case 35:
-			EL_data = 0b00000001;
+			EL_data = 0b00100000;
 			EL_animation--;
 			break;
 		case 34:

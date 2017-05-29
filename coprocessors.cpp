@@ -2,9 +2,14 @@
 #include <FastCRC.h>
 #include <cobs.h> 
 
-FastCRC8 CRC8;
+boolean ir_spot_on = true;
+boolean ir_cvg_on = false;
 
-static uint8_t el_packet_num = 0;
+uint8_t ir_cvg_data = SERIAL_NONE;
+uint8_t ir_spot_data = SERIAL_NONE;
+uint8_t ir_timer = 0;
+
+FastCRC8 CRC8;
 
 //serial com data
 #define INCOMING_BUFFER_SIZE 128
@@ -29,7 +34,34 @@ void elwire_output(void){		//el wire
 	uint8_t raw_buffer[15];
 	
 	raw_buffer[0] = EL_data;
-	raw_buffer[1] = el_packet_num++;
+
+	raw_buffer[1] = SERIAL_NONE;
+
+	switch (ir_timer) {
+	case 0:
+	case 2:
+	case 4:
+	case 6:
+		if (ir_spot_on && !supress_leds) raw_buffer[1] = SERIAL_SPOT_ON_BUTTON;
+		else			  raw_buffer[1] = SERIAL_SPOT_OFF_BUTTON;
+		break;
+
+	case 30:
+	case 32:
+	case 34:
+	case 36:
+		if (ir_spot_on && !supress_leds) raw_buffer[1] = ir_spot_data;
+		break;
+	case 10:
+	case 12:
+	case 14:
+	case 16:
+		if (ir_cvg_on && !supress_leds) raw_buffer[1] = ir_cvg_data;
+		break;
+	}
+
+	if (++ir_timer == 40) ir_timer = 0;
+
 	raw_buffer[2] = CRC8.maxim(raw_buffer, 2);
 
 	uint8_t encoded_buffer[16];
@@ -37,6 +69,7 @@ void elwire_output(void){		//el wire
 
 	Serial1.write(encoded_buffer, encoded_size);
 	Serial1.write(0x00);
+
 }
 
 void SerialUpdate(void) {

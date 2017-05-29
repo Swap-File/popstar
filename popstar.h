@@ -81,5 +81,5 @@ extern CHSV color2;
 extern boolean palette_auto;
 extern boolean background_auto;
 
-
+extern boolean supress_leds;
 #endif
