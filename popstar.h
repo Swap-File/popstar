@@ -80,6 +80,9 @@ extern CHSV color2;
 
 extern boolean palette_auto;
 extern boolean background_auto;
-
+extern boolean on_sound_mode;
 extern boolean supress_leds;
+
+extern int32_t background_change_time;
+
 #endif

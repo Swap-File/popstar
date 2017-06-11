@@ -4,10 +4,10 @@
 #define USE_OCTOWS2811
 #include <OctoWS2811.h>
 #include "FastLED.h"
-#include "zx.h"
 #include "coprocessors.h"
 #include "popstar.h"
 #include "states.h"
+#include "nunchuk.h"
 
 #define GESTURE_DISPLAY_TIME 400
 
@@ -30,8 +30,7 @@ void oled_reint(void) {
 	oled.reinit();
 }
 
- void graph_gesture(zx_sensor *sensor, uint8_t x, uint8_t y);
- void display_gesture_text(uint8_t gesture);
+
 #define BACKGROUND_OFFSET_X 19
 #define BACKGROUND_OFFSET_Y 0
 #define EL_OFFSET_X 24
@@ -44,12 +43,12 @@ void oled_reint(void) {
 void oled_update(void) {
 
 	oled.clearDisplay();
-	
-		//draw LED indicators
+
+	//draw LED indicators
 	for (uint8_t x = 0; x < 24; x++) {
 		for (uint8_t y = 0; y < 16; y++) {
 			if (Background_Array[x][y].getLuma() >= 30) {  //This sets where decayed pixels disappear from HUD
-				oled.drawPixel(BACKGROUND_OFFSET_X+x+1,BACKGROUND_OFFSET_Y+y+1, WHITE);
+				oled.drawPixel(BACKGROUND_OFFSET_X + x + 1, BACKGROUND_OFFSET_Y + y + 1, WHITE);
 			}
 		}
 	}
@@ -62,27 +61,109 @@ void oled_update(void) {
 			//oled.drawLine(EL_OFFSET_X + 1, 18+2 + EL_OFFSET_Y + (i << 1), EL_OFFSET_X + 12, 18 + 2 + EL_OFFSET_Y + (i << 1), WHITE);
 		}
 	}
-	if (bitRead(EL_data,6)) oled.drawRect(EL_OFFSET_X, EL_OFFSET_Y, 14, 19, WHITE);
-	if (bitRead(EL_data,7)) oled.drawRect(EL_OFFSET_X+2, EL_OFFSET_Y+14, 10, 3, WHITE);
+	if (bitRead(EL_data, 6)) oled.drawRect(EL_OFFSET_X, EL_OFFSET_Y, 14, 19, WHITE);
+	if (bitRead(EL_data, 7)) oled.drawRect(EL_OFFSET_X + 2, EL_OFFSET_Y + 14, 10, 3, WHITE);
 
 
 	//Draw hand indicators
 
 	oled.setCursor(0, 40);
-	
-	if (menu_state == MENU_OFF) {
-		oled.print("  OFF");
+
+	if (nunchuk_button == BUTTON_NONE) {
+		switch (nunchuk_dpad) {
+		case DPAD_NONE:
+			print_background();
+			break;
+		case DPAD_UP_RIGHT:
+			if (background_auto) oled.print("AUTO FX");
+			else				  oled.print("MAN FX");
+			break;
+		case  DPAD_UP_LEFT:
+			if (palette_auto) oled.print("AUTO COLOR");
+			else			 oled.print("MAN COLOR");
+			break;
+		case DPAD_RIGHT:
+			if (ir_spot_on) oled.print("SPOT ON");
+			else		 oled.print("SPOT OFF");
+			break;
+		case  DPAD_LEFT:
+			if (ir_cvg_on) oled.print("CVG ON");
+			else		    oled.print("CVG OFF");
+			break;
+		case DPAD_UP:
+			if (on_sound_mode) oled.print("SND START");
+			else		       oled.print("ANI START");
+			break;
+		default:
+			oled.print("=?=");
+		}
 	}
-	else if (menu_state == MENU_ON) {
-		print_background();
+	else if (nunchuk_button == BUTTON_CZ) {
+		switch (nunchuk_dpad) {
+		case DPAD_NONE:
+			if (menu_state == MENU_OFF) {
+				if (on_sound_mode) oled.print("SND START?");
+				else		       oled.print("ANI START?");
+			}
+			else						oled.print("OFF?");
+			break;
+		case DPAD_UP_RIGHT:
+			if (background_auto)  oled.print("MAN FX?");
+			else				  oled.print("AUTO FX?");
+			break;
+		case  DPAD_UP_LEFT:
+			if (palette_auto) oled.print("MAN COLOR?");
+			else			  oled.print("AUTO COLOR?");
+			break;
+		case DPAD_RIGHT:
+			if (ir_spot_on)  oled.print("SPOT OFF?");
+			else			 oled.print("SPOT ON?");
+			break;
+		case  DPAD_LEFT:
+			if (ir_cvg_on) oled.print("CVG OFF?");
+			else		   oled.print("CVG ON?");
+			break;
+		case DPAD_UP:
+			if (on_sound_mode) oled.print("ON? ANI");
+			else		       oled.print("ON? SND");
+			break;
+		case DPAD_DOWN:
+			oled.print("OFF?");
+			break;
+		default:
+			oled.print("=?=");
+		}
 	}
-	else if (menu_state >= MENU_LIST_FIRST) {
-		print_menu();
+	else if (nunchuk_button == BUTTON_Z) {
+		switch (nunchuk_dpad) {
+		case DPAD_NONE:
+			oled.print("EFFECT+?");
+			break;
+		case DPAD_LEFT:
+			oled.print("EFFECT-?");
+			break;
+		case DPAD_RIGHT:
+			oled.print("EFFECT+?");
+			break;
+		case DPAD_UP:
+			if (on_sound_mode) oled.print("ANI?");
+			else		       oled.print("SND?");
+			break;
+		default:
+			oled.print("=?=");
+		}
+
+	}
+	else if (nunchuk_button == BUTTON_C) {
+		if (nunchuk_dpad == DPAD_NONE) oled.print("COLOR+?");
+		else if (nunchuk_dpad == DPAD_LEFT) oled.print("COLOR-?");
+		else if (nunchuk_dpad == DPAD_RIGHT) oled.print("COLOR+?");
 	}
 
-	
-	
 
+
+
+	//	Serial.println(nunchuk_accelZ);
 
 	int pitch = map(pitch_compensated, 13500, 22500, 0, 8);
 
@@ -91,17 +172,17 @@ void oled_update(void) {
 #define offset_vrt 25
 #define offset_horz 50
 
-pitch = 7-constrain(pitch,0,7);
-	oled.drawLine(offset_vrtf+0, offset_vrt +pitch, offset_vrtf+8, offset_vrt + pitch,WHITE);
+	pitch = 7 - constrain(pitch, 0, 7);
+	oled.drawLine(offset_vrtf + 0, offset_vrt + pitch, offset_vrtf + 8, offset_vrt + pitch, WHITE);
 
 	int roll = map(roll_compensated, 13500, 22500, 0, 8);
 	roll = constrain(roll, 0, 7);
-	oled.drawLine(offset_vrtf+0, offset_vrt + 7 - roll, offset_vrtf+8, offset_vrt +roll, WHITE);
+	oled.drawLine(offset_vrtf + 0, offset_vrt + 7 - roll, offset_vrtf + 8, offset_vrt + roll, WHITE);
 
-	
+
 	int yaw = map(yaw_compensated, 0, 36000, 0, 255);
 
-	
+
 	int x = int(sin8(yaw));
 	int y = int(cos8(yaw));
 	x = map(x, 0, 255, 0, 9);
@@ -109,161 +190,95 @@ pitch = 7-constrain(pitch,0,7);
 
 	x = constrain(x, 0, 8);
 	y = constrain(y, 0, 8);
-	oled.drawLine(offset_horz+x, offset_vrt+ y, offset_horz+ 8-x, offset_vrt+ 8-y, WHITE);
-
-
-	graph_gesture(&sensor1, SENSOR1_X, SENSOR1_Y);
-	graph_gesture(&sensor2, SENSOR2_X, SENSOR2_Y);
+	oled.drawLine(offset_horz + x, offset_vrt + y, offset_horz + 8 - x, offset_vrt + 8 - y, WHITE);
 
 	oled.display();
 }
 
-void graph_gesture(zx_sensor *sensor,uint8_t x, uint8_t y) {
-	int tempx = map(sensor->x, 0, 240, 0, 16);
-	int tempy = map(sensor->z, 0, 240, 0, 16);
-	tempx = constrain(tempx, 0, 15);
-	tempy = constrain(tempy, 0, 15);
-	//oled.drawPixel(x + 1 + constrain(tempx, 0, 15), y + 1 + constrain(tempy, 0, 15), WHITE);
-	//oled.drawRect(x, y, 17, 17, WHITE);
-	oled.drawLine(x + tempx, y + 0, x + tempx, y + 15, WHITE);
-	oled.drawLine(x+0, y + tempy, x + 15, y + tempy, WHITE);
-
-	oled.setCursor(x, y + 17);
-
-	//if (sensor->order == 0)  oled.print(" ");
-	//else                    oled.print(sensor->order);
-
-	if (millis() - sensor->gesture_time < GESTURE_DISPLAY_TIME) {
-		display_gesture_text(sensor->gesture);
-	}
-	
-}
-
-void display_gesture_text(uint8_t gesture) {
-	if (gesture == GESTURE_NONE)				oled.print(" X ");
-	else if (gesture == GESTURE_RIGHT)			oled.print(" > ");
-	else if (gesture == GESTURE_LEFT)			oled.print(" < ");
-	else if (gesture == GESTURE_UP)				oled.print(" ^ ");
-	else if (gesture == GESTURE_HOVER)			oled.print(" _ ");
-	else if (gesture == GESTURE_HOVER_LEFT)		oled.print("_<_");
-	else if (gesture == GESTURE_HOVER_RIGHT)	oled.print("_>_");
-	else if (gesture == GESTURE_HOVER_UP)		oled.print("_^_");
-	else										oled.print(" ?");
-}
-
 void print_background(void) {
-	switch (background_mode) {
-	case BACKGROUND_FFT_HORZ_BARS_LEFT:
-		oled.print("FFT L");
-		break;
-	case  BACKGROUND_FFT_HORZ_BARS_RIGHT:
-		oled.print("FFT L");
-		break;
-	case  BACKGROUND_FFT_HORZ_BARS_STATIC:
-		oled.print("FFT HS");
-		break;
-	case  BACKGROUND_FFT_VERT_BARS_UP:
-		oled.print("FFT U");
-		break;
-	case  BACKGROUND_FFT_VERT_BARS_DOWN:
-		oled.print("FFT D");
-		break;
-	case  BACKGROUND_FFT_VERT_BARS_STATIC:
-		oled.print("FFT VS");
-		break;
-	case  BACKGROUND_NOISE_1:
-		oled.print("NOISE 1");
-		break;
-	case  BACKGROUND_NOISE_2:
-		oled.print("NOISE 2");
-		break;
-	case  BACKGROUND_NOISE_3:
-		oled.print("NOISE 3");
-		break;
-	case  BACKGROUND_NOISE_4:
-		oled.print("NOISE 4");
-		break;
-	case  BACKGROUND_NOISE_5:
-		oled.print("NOISE 5");
-		break;
-	case  BACKGROUND_NOISE_6:
-		oled.print("NOISE 6");
-		break;
-	case  BACKGROUND_NOISE_7:
-		oled.print("NOISE 7");
-		break;
-	case  BACKGROUND_NOISE_8:
-		oled.print("NOISE 8");
-		break;
-	case  BACKGROUND_NOISE_9:
-		oled.print("NOISE 9");
-		break;
-	case  BACKGROUND_NOISE_10:
-		oled.print("NOISE 10");
-		break;
-	case  BACKGROUND_NOISE_11:
-		oled.print("NOISE 11");
-		break;
-	case  BACKGROUND_ANI_GLITTER:
-		oled.print("GLITTER");
-		break;
-	case  BACKGROUND_ANI_JUGGLE:
-		oled.print("JUGGLE");
-		break;
-	case  BACKGROUND_ANI_DRIFT:
-		oled.print("DRIFT 1");
-		break;
-	case  BACKGROUND_ANI_DRIFT2:
-		oled.print("DRIFT 2");
-		break;
-	case  BACKGROUND_ANI_MUNCH:
-		oled.print("MUNCH");
-		break;
-	case  BACKGROUND_ANI_SNAKE:
-		oled.print("SNAKE");
-		break;
-	case  BACKGROUND_ANI_WAVE:
-		oled.print("WAVE");
-		break;
-	case  BACKGROUND_ANI_LIFE:
-		oled.print("LIFE");
-		break;
-	default:
-		oled.print("B?");
-		break;
+	if (menu_state == MENU_OFF) {
+		oled.print("  OFF");
+	}
+	else {
+		switch (background_mode) {
+		case BACKGROUND_FFT_HORZ_BARS_LEFT:
+			oled.print("FFT L");
+			break;
+		case  BACKGROUND_FFT_HORZ_BARS_RIGHT:
+			oled.print("FFT L");
+			break;
+		case  BACKGROUND_FFT_HORZ_BARS_STATIC:
+			oled.print("FFT HS");
+			break;
+		case  BACKGROUND_FFT_VERT_BARS_UP:
+			oled.print("FFT U");
+			break;
+		case  BACKGROUND_FFT_VERT_BARS_DOWN:
+			oled.print("FFT D");
+			break;
+		case  BACKGROUND_FFT_VERT_BARS_STATIC:
+			oled.print("FFT VS");
+			break;
+		case  BACKGROUND_NOISE_1:
+			oled.print("NOISE 1");
+			break;
+		case  BACKGROUND_NOISE_2:
+			oled.print("NOISE 2");
+			break;
+		case  BACKGROUND_NOISE_3:
+			oled.print("NOISE 3");
+			break;
+		case  BACKGROUND_NOISE_4:
+			oled.print("NOISE 4");
+			break;
+		case  BACKGROUND_NOISE_5:
+			oled.print("NOISE 5");
+			break;
+		case  BACKGROUND_NOISE_6:
+			oled.print("NOISE 6");
+			break;
+		case  BACKGROUND_NOISE_7:
+			oled.print("NOISE 7");
+			break;
+		case  BACKGROUND_NOISE_8:
+			oled.print("NOISE 8");
+			break;
+		case  BACKGROUND_NOISE_9:
+			oled.print("NOISE 9");
+			break;
+		case  BACKGROUND_NOISE_10:
+			oled.print("NOISE 10");
+			break;
+		case  BACKGROUND_NOISE_11:
+			oled.print("NOISE 11");
+			break;
+		case  BACKGROUND_ANI_GLITTER:
+			oled.print("GLITTER");
+			break;
+		case  BACKGROUND_ANI_JUGGLE:
+			oled.print("JUGGLE");
+			break;
+		case  BACKGROUND_ANI_DRIFT:
+			oled.print("DRIFT 1");
+			break;
+		case  BACKGROUND_ANI_DRIFT2:
+			oled.print("DRIFT 2");
+			break;
+		case  BACKGROUND_ANI_MUNCH:
+			oled.print("MUNCH");
+			break;
+		case  BACKGROUND_ANI_SNAKE:
+			oled.print("SNAKE");
+			break;
+		case  BACKGROUND_ANI_WAVE:
+			oled.print("WAVE");
+			break;
+		case  BACKGROUND_ANI_LIFE:
+			oled.print("LIFE");
+			break;
+		default:
+			oled.print("B?");
+			break;
+		}
 	}
 }
-
-void print_menu(void) {
-	switch (menu_state) {
-	case MENU_TOGGLE_AUTO_BACKGROUND:
-		if(background_auto) oled.print("AUTO FX");
-		else				oled.print("MAN FX");
-		break;
-	case  MENU_TOGGLE_AUTO_COLOR:
-		if (palette_auto) oled.print("AUTO COLOR");
-		else				 oled.print("MAN COLOR");
-		break;
-	case  MENU_ENTER_ANI_MODE:
-		oled.print("ENTER ANI?");
-		break;
-	case  MENU_ENTER_NOISE_MODE:
-		oled.print("ENTER SND?");
-		break;
-	case  MENU_TURN_OFF:
-		oled.print("SHUTDOWN?");
-		break;
-	case  MENU_TOGGLE_SPOTLIGHT:
-		if (ir_spot_on)	oled.print("SPOT ON");
-		else				oled.print("SPOT OFF");
-		break;
-	case  MENU_TOGGLE_IR_BONUS:
-		if (ir_cvg_on)			oled.print("CVG ON");
-		else				oled.print("CVG OFF");
-		break;
-	default:
-		oled.print("M?");
-		break;
-	}
-}
-

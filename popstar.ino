@@ -1,4 +1,5 @@
 #include "el.h"
+#include "nunchuk.h"
 #include "popstar.h"
 #include "states.h"
 #include <Audio.h>
@@ -9,9 +10,10 @@
 #include <Metro.h>
 #include "noise.h"
 #include "fft.h"
-#include "zx.h"
 #include "oled.h"
 #include <ADC.h>
+
+
 
 //FFT stuff
 uint16_t FFTdisplayValueMax16[16]; //max vals for normalization over time
@@ -40,7 +42,7 @@ CRGB Background_Array[24][16]; //actual background Array
 //auto update true or false
 boolean palette_auto = true;
 boolean background_auto = true;
-
+boolean on_sound_mode = true;
 
 float voltage = 24.0;
 
@@ -75,6 +77,7 @@ uint8_t gHue = 0; // rotating "base color" used by many of the patterns
 // adc object for battery and temp meter, will use ADC1
 ADC *adc = new ADC();
 
+
 void setup() {
 	oled_init();
 	FastLED.addLeds<OCTOWS2811>(Output_Array, 128);
@@ -82,7 +85,7 @@ void setup() {
 	Serial.begin(115200); //debug
 	Serial1.begin(57600);  //el wire output and IMU input
 	ChangeTargetPalette(1);  //set initial palette
-	zx_init();
+
 	fft_init();
 
 	//ADC1 setup
@@ -91,12 +94,12 @@ void setup() {
 	adc->setAveraging(32, ADC_1);
 	adc->setResolution(16, ADC_1);
 	adc->startContinuous(A3, ADC_1);
+
 }
 
 uint8_t hud_pallet_rotate;
 void loop() {
-
-	zx_update(); //initiate i2c background DMA Transfers
+	nunchuk_update();
 	SerialUpdate();
 	state_update();
 
@@ -115,7 +118,7 @@ void loop() {
 		if (background_mode <= BACKGROUND_FFT_LAST && background_mode >= BACKGROUND_FFT_FIRST) fft_update_background(background_mode);
 		if (background_mode <= BACKGROUND_NOISE_LAST && background_mode >= BACKGROUND_NOISE_FIRST) Noise(background_mode - BACKGROUND_NOISE_FIRST + 1);
 	}
-	zx_update(); //initiate i2c background DMA Transfers
+	nunchuk_update();
 	update_el_state();
 
 	if (background_mode <= BACKGROUND_ANI_LAST && background_mode >= BACKGROUND_ANI_FIRST) {
@@ -190,7 +193,7 @@ void loop() {
 		elwire_output();
 	}
 
-	if (timer_50hz.check())  hud_pallet_rotate++;
+	if (timer_50hz.check()) hud_pallet_rotate++;
 
 	if (timer_1hz.check()) {
 		
