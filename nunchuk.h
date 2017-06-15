@@ -37,9 +37,7 @@ extern int nunchuk_accelY;
 extern int nunchuk_accelZ;
 
 extern int nunchuk_total_acceleration;
-
 extern int nunchuk_accelAngle;
-
 
 extern void nunchuk_update();
 

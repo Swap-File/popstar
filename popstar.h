@@ -68,7 +68,7 @@ extern int8_t background_mode;
 extern int8_t requested_palette;
 
 extern uint8_t EL_data;
-
+extern float voltage;
 void ChangeTargetPalette(uint8_t immediate);
 
 extern CRGBPalette16 PaletteNoiseCurrent;
@@ -82,6 +82,7 @@ extern boolean palette_auto;
 extern boolean background_auto;
 extern boolean on_sound_mode;
 extern boolean supress_leds;
+extern boolean internal_preview;
 
 extern int32_t background_change_time;
 

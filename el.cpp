@@ -9,6 +9,7 @@ uint8_t EL_data;
 
 uint32_t el_ani_time = 0;
 
+
 void update_el_state(void) {
 
 	if (menu_state == MENU_OFF) {
@@ -167,6 +168,8 @@ void update_el_state(void) {
 		el_ani_time = millis();
 	}
 
+
+	if (supress_leds) EL_data = 0;
 
 	EL_Mode_last = EL_Mode;
 }

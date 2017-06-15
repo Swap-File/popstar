@@ -5,14 +5,8 @@
 #include "nunchuk.h"
 #include "popstar.h"
 
-
 uint8_t menu_state_last = MENU_OFF;
 uint8_t menu_state = MENU_OFF;
-
-
-boolean latch_reset = true;
-uint8_t debounce = 0;
-uint8_t debounce1 = 0;
 
 void auto_head_tilt() {
 	if (roll_compensated < 13500)	 background_mode = BACKGROUND_FFT_HORZ_BARS_LEFT;
@@ -27,6 +21,7 @@ void increment_background(int8_t number) {
 		background_mode += number;
 		if (background_mode < BACKGROUND_NOISE_FIRST) background_mode = BACKGROUND_NOISE_LAST;
 		if (background_mode > BACKGROUND_NOISE_LAST) background_mode = BACKGROUND_NOISE_FIRST;
+		auto_head_tilt();  //override mode if tilting and not in an animation
 	}
 
 	if (background_mode >= BACKGROUND_ANI_FIRST && background_mode <= BACKGROUND_ANI_LAST) {
@@ -34,15 +29,13 @@ void increment_background(int8_t number) {
 		if (background_mode < BACKGROUND_ANI_FIRST) background_mode = BACKGROUND_ANI_LAST;
 		if (background_mode > BACKGROUND_ANI_LAST) background_mode = BACKGROUND_ANI_FIRST;
 	}
-	else {
-		auto_head_tilt();//override mode if tilting and not in an animation
-	}
 
 	background_change_time = millis();
 }
 
 
 uint32_t accel_cooldown = 0;
+boolean inhibit_next_release = false;
 
 void state_update() {
 
@@ -53,228 +46,345 @@ void state_update() {
 		auto_head_tilt();
 	}
 
+	if (nunchuk_dpad == DPAD_NONE || nunchuk_dpad ==  DPAD_DEADZONE) inhibit_next_release = false;
+
 	if (nunchuk_fresh) {
 
-		uint8_t button_to_handle = BUTTON_NONE;
-		boolean motion = false;
+		uint8_t button_to_handle = nunchuk_button;
+		uint8_t activity = 0;
 
-		if ((nunchuk_button != nunchuk_button_last) && (nunchuk_button == BUTTON_NONE)) {  //handle releasing buttons
+		if ((nunchuk_button != nunchuk_button_last) && (nunchuk_button == BUTTON_NONE) && (!inhibit_next_release)) {  //handle releasing buttons
 			button_to_handle = nunchuk_button_last;
+			activity = ACTIVITIY_BUTTON;
 		}
 		else if (millis() - accel_cooldown > 200 && nunchuk_total_acceleration > 200000) { //handle a swipe while holding
-			button_to_handle = nunchuk_button;
-			motion = true;
+			activity = ACTIVITIY_MOTION;
+			inhibit_next_release = true;  //block out releasing the button unless it returns to dpad center and back
 			accel_cooldown = millis();
 		}
 
-		if (button_to_handle == BUTTON_CZ) {
-			switch (nunchuk_dpad) {
-			case DPAD_NONE:
-				if (motion) {
-					if (menu_state == MENU_OFF) menu_state = MENU_ON;
-					else {
-						menu_state = MENU_OFF;
-						supress_leds = true;
-					}
-				}
-				break;
-			case DPAD_UP_RIGHT:
-				background_auto = !background_auto;
-				break;
-			case  DPAD_UP_LEFT:
-				palette_auto = !palette_auto;
-				break;
-			case DPAD_RIGHT:
-				ir_spot_on = !ir_spot_on;
-				break;
-			case  DPAD_LEFT:
-				ir_cvg_on = !ir_cvg_on;
-				break;
-			case DPAD_UP:
-				if (menu_state == MENU_OFF) menu_state = MENU_ON;
-				break;
-			case DPAD_DOWN:
-				menu_state = MENU_OFF;
-				supress_leds = true;
-				break;
-			}
-		}
-		else if (button_to_handle == BUTTON_Z) {
-			switch (nunchuk_dpad) {
-			case DPAD_NONE:
-				if (motion) {
-					increment_background(1);
-					EL_animation = EL_ANI_RIGHT;
-				}
-				break;
-			case DPAD_UP_RIGHT:
-				break;
-			case DPAD_UP_LEFT:
-				increment_background(-1);
-				EL_animation = EL_ANI_LEFT;
-				break;
-			case DPAD_RIGHT:
-				increment_background(1);
-				EL_animation = EL_ANI_RIGHT;
-				break;
-			case  DPAD_LEFT:
-				
-				break;
-			case DPAD_UP:
-				on_sound_mode = !on_sound_mode;
-				if (on_sound_mode)		background_mode = BACKGROUND_ANI_WAVE;
-				else background_mode = BACKGROUND_NOISE_6;
-				break;
-			case DPAD_DOWN:
-			
-				break;
-			}
-		}
-		else if (button_to_handle == BUTTON_C) {
-			switch (nunchuk_dpad) {
-			case DPAD_NONE:
-				if (motion) {
-					requested_palette++;
-					EL_animation = EL_ANI_RIGHT;
-				}
-				break;
-			case DPAD_UP_RIGHT:
-				break;
-			case DPAD_UP_LEFT:
-				requested_palette--;
-				EL_animation = EL_ANI_LEFT;
-				break;
-			case DPAD_RIGHT:
-				requested_palette++;
-				EL_animation = EL_ANI_RIGHT;
-				break;
-			case  DPAD_LEFT:
-
-				break;
-			case DPAD_UP:
-		
-				break;
-			case DPAD_DOWN:
-
-				break;
-			}
-		}
+		gui(button_to_handle, activity);
 
 		nunchuk_fresh = false;
 	}
 }
 
-
-/*
-if (menu_state == 1) {
-	if (sensor1.gesture_fresh) {
-		if (sensor1.gesture == GESTURE_LEFT) {
-			increment_background(-1);
-			EL_animation = EL_ANI_LEFT;
-		}
-		else if (sensor1.gesture == GESTURE_RIGHT) {
-			increment_background(1);
-			EL_animation = EL_ANI_RIGHT;
-		}
+void print_background(void) {
+	if (menu_state == MENU_OFF) {
+		oled_load("OFF");
 	}
-
-	if (sensor2.gesture_fresh) {
-		if (sensor2.gesture == GESTURE_LEFT) {
-			requested_palette--;
-			EL_animation = EL_ANI_LEFT;
+	else {
+		switch (background_mode) {
+		case BACKGROUND_FFT_HORZ_BARS_LEFT:
+			oled_load("FFT L");
+			break;
+		case  BACKGROUND_FFT_HORZ_BARS_RIGHT:
+			oled_load("FFT L");
+			break;
+		case  BACKGROUND_FFT_HORZ_BARS_STATIC:
+			oled_load("FFT HS");
+			break;
+		case  BACKGROUND_FFT_VERT_BARS_UP:
+			oled_load("FFT U");
+			break;
+		case  BACKGROUND_FFT_VERT_BARS_DOWN:
+			oled_load("FFT D");
+			break;
+		case  BACKGROUND_FFT_VERT_BARS_STATIC:
+			oled_load("FFT VS");
+			break;
+		case  BACKGROUND_NOISE_1:
+			oled_load("NOISE 1");
+			break;
+		case  BACKGROUND_NOISE_2:
+			oled_load("NOISE 2");
+			break;
+		case  BACKGROUND_NOISE_3:
+			oled_load("NOISE 3");
+			break;
+		case  BACKGROUND_NOISE_4:
+			oled_load("NOISE 4");
+			break;
+		case  BACKGROUND_NOISE_5:
+			oled_load("NOISE 5");
+			break;
+		case  BACKGROUND_NOISE_6:
+			oled_load("NOISE 6");
+			break;
+		case  BACKGROUND_NOISE_7:
+			oled_load("NOISE 7");
+			break;
+		case  BACKGROUND_NOISE_8:
+			oled_load("NOISE 8");
+			break;
+		case  BACKGROUND_NOISE_9:
+			oled_load("NOISE 9");
+			break;
+		case  BACKGROUND_NOISE_10:
+			oled_load("NOISE 10");
+			break;
+		case  BACKGROUND_NOISE_11:
+			oled_load("NOISE 11");
+			break;
+		case  BACKGROUND_ANI_GLITTER:
+			oled_load("GLITTER");
+			break;
+		case  BACKGROUND_ANI_JUGGLE:
+			oled_load("JUGGLE");
+			break;
+		case  BACKGROUND_ANI_DRIFT:
+			oled_load("DRIFT 1");
+			break;
+		case  BACKGROUND_ANI_DRIFT2:
+			oled_load("DRIFT 2");
+			break;
+		case  BACKGROUND_ANI_MUNCH:
+			oled_load("MUNCH");
+			break;
+		case  BACKGROUND_ANI_SNAKE:
+			oled_load("SNAKE");
+			break;
+		case  BACKGROUND_ANI_WAVE:
+			oled_load("WAVE");
+			break;
+		case  BACKGROUND_ANI_LIFE:
+			oled_load("LIFE");
+			break;
+		default:
+			oled_load("UNKNOWN");
+			break;
 		}
-		else if (sensor2.gesture == GESTURE_RIGHT) {
-			requested_palette++;
-			EL_animation = EL_ANI_RIGHT;
-		}
-		ChangeTargetPalette(1);
-
 	}
 }
 
-//poweron
-if (menu_state == MENU_OFF) {
-	if (sensor2.gesture == GESTURE_HOVER_UP && sensor1.gesture == GESTURE_HOVER_UP) { //kick from off to on
-		if (abs((int32_t)(sensor1.gesture_time - sensor2.gesture_time)) < 300)  menu_state = MENU_ON;
-	}
-}
+void gui(uint8_t button_to_handle, uint8_t activitiy) {
 
-if (menu_state == MENU_ON) { //kick from on to menu
-	if ((sensor1.z < 10 || sensor2.z < 10) && latch_reset) 	debounce1++;
-	else 	debounce1 = 0;
+	if (activitiy > ACTIVITIY_NONE) oled_action_time = millis();
 
-	if (sensor1.z > 10 && sensor2.z > 10) latch_reset = true;
-
-	if (debounce1 == 255) {
-		debounce1 = 0;
-		latch_reset = false;
-		if (background_mode <= BACKGROUND_ANI_LAST && background_mode >= BACKGROUND_ANI_FIRST) menu_state = MENU_ENTER_NOISE_MODE;
-		else  menu_state = MENU_ENTER_ANI_MODE;
-	}
-}
-
-if (menu_state >= MENU_LIST_FIRST) {
-	//navigate menu left
-	if ((sensor1.gesture_fresh && sensor1.gesture == GESTURE_LEFT) || (sensor2.gesture_fresh && sensor2.gesture == GESTURE_LEFT)) {
-		if (menu_state == MENU_TOGGLE_AUTO_BACKGROUND)		menu_state = MENU_TOGGLE_IR_BONUS;
-		else if (menu_state == MENU_TOGGLE_AUTO_COLOR)		menu_state = MENU_TOGGLE_AUTO_BACKGROUND;
-		else if (menu_state == MENU_ENTER_ANI_MODE)			menu_state = MENU_TOGGLE_AUTO_COLOR;
-		else if (menu_state == MENU_ENTER_NOISE_MODE)		menu_state = MENU_ENTER_ANI_MODE;
-		else if (menu_state == MENU_TURN_OFF)				menu_state = MENU_ENTER_NOISE_MODE;
-		else if (menu_state == MENU_TOGGLE_SPOTLIGHT)		menu_state = MENU_TURN_OFF;
-		else if (menu_state == MENU_TOGGLE_IR_BONUS)		menu_state = MENU_TOGGLE_SPOTLIGHT;
-
-	}
-	//navigate menu right
-	if ((sensor1.gesture_fresh && sensor1.gesture == GESTURE_RIGHT) || (sensor2.gesture_fresh && sensor2.gesture == GESTURE_RIGHT)) {
-		if (menu_state == MENU_TOGGLE_AUTO_BACKGROUND)		menu_state = MENU_TOGGLE_AUTO_COLOR;
-		else if (menu_state == MENU_TOGGLE_AUTO_COLOR)		menu_state = MENU_ENTER_ANI_MODE;
-		else if (menu_state == MENU_ENTER_ANI_MODE)			menu_state = MENU_ENTER_NOISE_MODE;
-		else if (menu_state == MENU_ENTER_NOISE_MODE)		menu_state = MENU_TURN_OFF;
-		else if (menu_state == MENU_TURN_OFF)				menu_state = MENU_TOGGLE_SPOTLIGHT;
-		else if (menu_state == MENU_TOGGLE_SPOTLIGHT)		menu_state = MENU_TOGGLE_IR_BONUS;
-		else if (menu_state == MENU_TOGGLE_IR_BONUS)		menu_state = MENU_TOGGLE_AUTO_BACKGROUND;
-	}
-	//do actions
-	if ((sensor1.gesture_fresh && sensor1.gesture == GESTURE_UP) || (sensor2.gesture_fresh && sensor2.gesture == GESTURE_UP) || (sensor1.gesture_fresh && sensor1.gesture == GESTURE_HOVER_UP) || (sensor2.gesture_fresh && sensor2.gesture == GESTURE_HOVER_UP)) {
-		switch (menu_state) {
-		case MENU_TOGGLE_AUTO_BACKGROUND:
-			background_auto = !background_auto;
-			menu_state = MENU_ON;
+	if (button_to_handle == BUTTON_NONE) { //no actions, display only
+		switch (nunchuk_dpad) {
+		case DPAD_NONE:
+			print_background();
 			break;
-		case MENU_TOGGLE_AUTO_COLOR:
-			palette_auto = !palette_auto;
-			menu_state = MENU_ON;
+		case DPAD_UP_RIGHT:
+			if (background_auto) oled_load("AUTO FX");
+			else				  oled_load("MAN FX");
 			break;
-		case MENU_ENTER_ANI_MODE:
-			background_mode = BACKGROUND_ANI_WAVE;
-			menu_state = MENU_ON;
+		case  DPAD_UP_LEFT:
+			if (palette_auto) oled_load("AUTO COLOR");
+			else			 oled_load("MAN COLOR");
 			break;
-		case MENU_ENTER_NOISE_MODE:
-			background_mode = BACKGROUND_NOISE_6;
-			menu_state = MENU_ON;
+		case DPAD_RIGHT:
+			if (ir_spot_on) oled_load("SPOT ON");
+			else		 oled_load("SPOT OFF");
 			break;
-		case MENU_TURN_OFF:
-			menu_state = MENU_OFF;
-			supress_leds = true;
+		case  DPAD_LEFT:
+			if (ir_cvg_on) oled_load("CVG ON");
+			else		    oled_load("CVG OFF");
 			break;
-		case MENU_TOGGLE_SPOTLIGHT:
-			ir_spot_on = !ir_spot_on;
-			ir_timer = 0;  // do it now
-			menu_state = MENU_ON;
+		case DPAD_UP:
+			if (on_sound_mode) oled_load("SND START");
+			else		       oled_load("ANI START");
 			break;
-		case MENU_TOGGLE_IR_BONUS:
-			ir_cvg_on = !ir_cvg_on;
-			ir_timer = 0; // do it now
-			menu_state = MENU_ON;
+		case DPAD_DOWN_RIGHT:
+			if (internal_preview) oled_load("LEDS ON");
+			else		       oled_load("LEDS OFF");
 			break;
+		case DPAD_DOWN:
+		{
+			char temp[10];
+			dtostrf(voltage, 5, 2, temp);
+			temp[5] = 'v';
+			temp[6] = '\0';
+			oled_load(temp);
+		}
+		break;
+		default:
+			oled_load("UNUSED");
 		}
 	}
-
-	//exit menu
-	if (sensor2.z > 60 && sensor1.z > 60) debounce++; //make this better?
-	else debounce = 0;
-	if (debounce == 255) menu_state = MENU_ON;
-
+	else if (button_to_handle == BUTTON_CZ) {
+		switch (nunchuk_dpad) {
+		case DPAD_NONE:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				if (menu_state == MENU_OFF) menu_state = MENU_ON;
+				else {
+					menu_state = MENU_OFF;
+					supress_leds = true;
+				}
+			}
+			else {//display
+				if (menu_state == MENU_OFF) {
+					if (on_sound_mode) oled_load("SND START?");
+					else		       oled_load("ANI START?");
+				}
+				else                   oled_load("OFF?");
+			}
+			break;
+		case DPAD_UP_RIGHT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				background_auto = !background_auto;
+			}
+			else {//display
+				if (background_auto)  oled_load("MAN FX?");
+				else				  oled_load("AUTO FX?");
+			}
+			break;
+		case  DPAD_UP_LEFT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				palette_auto = !palette_auto;
+			}
+			else {//display
+				if (palette_auto) oled_load("MAN COLOR?");
+				else			  oled_load("AUTO COLOR?");
+			}
+			break;
+		case DPAD_RIGHT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				ir_spot_on = !ir_spot_on;
+			}
+			else {//display
+				if (ir_spot_on)  oled_load("SPOT OFF?");
+				else			 oled_load("SPOT ON?");
+			}
+			break;
+		case  DPAD_LEFT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				ir_cvg_on = !ir_cvg_on;
+			}
+			else {//display
+				if (ir_cvg_on) oled_load("CVG OFF?");
+				else		   oled_load("CVG ON?");
+			}
+			break;
+		case DPAD_UP:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				on_sound_mode = !on_sound_mode;
+			}
+			else {//display
+				if (on_sound_mode) oled_load("ANI?");
+				else		       oled_load("SND?");
+			}
+			break;
+		case DPAD_DOWN_RIGHT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				internal_preview = !internal_preview;
+			}
+			else {//display
+				if (internal_preview)  oled_load("MON OFF?");
+				else		           oled_load("MON ON?");
+			}
+			break;
+		case DPAD_DOWN:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				menu_state = MENU_OFF;
+				supress_leds = true;
+			}
+			else {//display
+				oled_load("OFF?");
+			}
+			break;
+		default:
+			oled_load("=?=");
+		}
+	}
+	else if (button_to_handle == BUTTON_Z) {
+		switch (nunchuk_dpad) {
+		case DPAD_NONE:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				if (menu_state == MENU_OFF) {
+					menu_state = MENU_ON;
+				}
+				else {
+					increment_background(1);
+					EL_animation = EL_ANI_RIGHT;
+				}
+			}
+			else {
+				if (menu_state == MENU_OFF) {
+					if (on_sound_mode) oled_load("SND START?");
+					else		       oled_load("ANI START?");
+				}
+				else {
+					oled_load("EFFECT+?");
+				}
+			}
+			break;
+		case DPAD_LEFT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				increment_background(-1);
+				EL_animation = EL_ANI_LEFT;
+			}
+			else {//display
+				oled_load("EFFECT-?");
+				break;
+		case DPAD_RIGHT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				increment_background(1);
+				EL_animation = EL_ANI_RIGHT;
+			}
+			else {//display
+				oled_load("EFFECT+?");
+			}
+			break;
+		case DPAD_UP:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				on_sound_mode = !on_sound_mode;
+				if (on_sound_mode) { //switch mode type and pick random
+					background_mode = random8(BACKGROUND_NOISE_FIRST, BACKGROUND_NOISE_LAST + 1);
+				}
+				else {
+					background_mode = random8(BACKGROUND_ANI_FIRST, BACKGROUND_ANI_LAST + 1);
+				}
+			}
+			else {//display
+				if (menu_state == MENU_OFF) {
+					if (on_sound_mode) oled_load("SND START?");
+					else		       oled_load("ANI START?");
+				}
+				else						oled_load("OFF?");
+			}
+			break;
+		default:
+			oled_load("UNUSED");
+			}
+		}
+	}
+	else if (button_to_handle == BUTTON_C) {
+		switch (nunchuk_dpad) {
+		case DPAD_NONE:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				requested_palette++;
+				ChangeTargetPalette(1);
+				EL_animation = EL_ANI_RIGHT;
+			}
+			else {//display
+				oled_load("COLOR+?");
+			}
+			break;
+		case DPAD_LEFT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				requested_palette++;
+				ChangeTargetPalette(1);
+				EL_animation = EL_ANI_LEFT;
+			}
+			else {//display
+				oled_load("COLOR-?");
+			}
+			break;
+		case DPAD_RIGHT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				requested_palette++;
+				ChangeTargetPalette(1);
+				EL_animation = EL_ANI_RIGHT;
+			}
+			else {//display
+				oled_load("COLOR+?");
+			}
+			break;
+		default:
+			oled_load("UNUSED");
+		}
+	}
+	return;
 }
-*/

@@ -43,6 +43,7 @@ CRGB Background_Array[24][16]; //actual background Array
 boolean palette_auto = true;
 boolean background_auto = true;
 boolean on_sound_mode = true;
+boolean internal_preview = true;
 
 float voltage = 24.0;
 
@@ -169,16 +170,22 @@ void loop() {
 	for (uint8_t y = 0; y < 16; y++) {
 		for (uint8_t x = 0; x < 24; x++) {
 			CRGB final_color = CRGB(0, 0, 0);
-			if (supress_leds == false) final_color = Background_Array[x][y];
-			if (background_mode <= BACKGROUND_NOISE_LAST && background_mode >= BACKGROUND_NOISE_FIRST) final_color += Snapshot_Array[x][y];
+			if (supress_leds == false) {
+				final_color = Background_Array[x][y];
+				if (background_mode <= BACKGROUND_NOISE_LAST && background_mode >= BACKGROUND_NOISE_FIRST) final_color += Snapshot_Array[x][y];
+			}
 			Output_Array[XY(x, y)] = final_color;
-
 		}
 	}
 
 	//update internal strip
 	for (uint8_t i = 0; i < 8; i++) {
-		Output_Array[i + 1 * 128] = ColorFromPalette(PaletteAniTarget,i * 32 + hud_pallet_rotate).nscale8(6);
+		if (internal_preview) {
+			Output_Array[i + 1 * 128] = ColorFromPalette(PaletteAniTarget, i * 32 + hud_pallet_rotate).nscale8(6);
+		}
+		else {
+			Output_Array[i + 1 * 128] = CRGB(0, 0, 0);
+		}
 	}
 
 	//100hz framerate
@@ -203,23 +210,28 @@ void loop() {
 		Serial.println(voltage);
 	}
 
-	if (millis() - palette_change_time > 10000 && palette_auto) {//30 second palette changer
+	if (menu_state == MENU_OFF) { //dont advance timers when off
+		palette_change_time = millis();
+		background_change_time = millis();
+	}
+
+	if (millis() - palette_change_time > 10000 && palette_auto) {//10 second palette changer
 		requested_palette++;
 		ChangeTargetPalette(0);
 		palette_change_time = millis();
 	}
 
-	if (millis() - background_change_time > 20000 && background_auto) {//30 second background changer
+	if (millis() - background_change_time > 20000 && background_auto) {//20 second background changer
 		increment_background(1);
 		background_change_time = millis();
 	}
-
 
 	//snapshot the last image if we changed modes
 	if (background_mode != background_mode_last) {
 		memcpy(Snapshot_Array, Background_Array, 24 * 16 * sizeof(CRGB));
 		background_change_time = millis();
 	}
+
 	background_mode_last = background_mode;
 	menu_state_last = menu_state;
 }

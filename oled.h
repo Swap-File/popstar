@@ -19,6 +19,8 @@
 void oled_reint(void);
 void oled_init(void);
 void oled_update(void);
+void oled_load(const char * input);
+extern uint32_t oled_action_time;
 
 #endif
 
