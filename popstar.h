@@ -83,6 +83,7 @@ extern boolean background_auto;
 extern boolean on_sound_mode;
 extern boolean supress_leds;
 extern boolean internal_preview;
+extern boolean el_audio;
 
 extern int32_t background_change_time;
 

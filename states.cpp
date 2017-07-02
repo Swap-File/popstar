@@ -9,10 +9,10 @@ uint8_t menu_state_last = MENU_OFF;
 uint8_t menu_state = MENU_OFF;
 
 void auto_head_tilt() {
-	if (roll_compensated < 13500)	 background_mode = BACKGROUND_FFT_HORZ_BARS_LEFT;
-	else if (roll_compensated > 22500) background_mode = BACKGROUND_FFT_HORZ_BARS_RIGHT;
-	else if (pitch_compensated < 13500) background_mode = BACKGROUND_FFT_VERT_BARS_UP;
-	else if (pitch_compensated > 22500)  background_mode = BACKGROUND_FFT_VERT_BARS_DOWN;
+	if (roll_compensated < 14500)	 background_mode = BACKGROUND_FFT_HORZ_BARS_LEFT;
+	else if (roll_compensated > 21500) background_mode = BACKGROUND_FFT_HORZ_BARS_RIGHT;
+	else if (pitch_compensated < 14500) background_mode = BACKGROUND_FFT_VERT_BARS_UP;
+	else if (pitch_compensated > 21500)  background_mode = BACKGROUND_FFT_VERT_BARS_DOWN;
 }
 
 void increment_background(int8_t number) {
@@ -21,13 +21,16 @@ void increment_background(int8_t number) {
 		background_mode += number;
 		if (background_mode < BACKGROUND_NOISE_FIRST) background_mode = BACKGROUND_NOISE_LAST;
 		if (background_mode > BACKGROUND_NOISE_LAST) background_mode = BACKGROUND_NOISE_FIRST;
-		auto_head_tilt();  //override mode if tilting and not in an animation
 	}
 
 	if (background_mode >= BACKGROUND_ANI_FIRST && background_mode <= BACKGROUND_ANI_LAST) {
 		background_mode += number;
 		if (background_mode < BACKGROUND_ANI_FIRST) background_mode = BACKGROUND_ANI_LAST;
 		if (background_mode > BACKGROUND_ANI_LAST) background_mode = BACKGROUND_ANI_FIRST;
+	}
+
+	if (background_mode >= BACKGROUND_FFT_FIRST && background_mode <= BACKGROUND_FFT_LAST) {
+		background_mode = random8(BACKGROUND_NOISE_FIRST, BACKGROUND_NOISE_LAST + 1);  //exit to random sound mode
 	}
 
 	background_change_time = millis();
@@ -44,6 +47,7 @@ void state_update() {
 	//automatically change head tilt modes
 	if (background_mode >= BACKGROUND_FFT_FIRST && background_mode <= BACKGROUND_FFT_LAST) {
 		auto_head_tilt();
+		on_sound_mode = false;// hold Z up to be ani mode, next/prev will be snd mode to exit fft
 	}
 
 	if (nunchuk_dpad == DPAD_NONE || nunchuk_dpad ==  DPAD_DEADZONE) inhibit_next_release = false;
@@ -159,6 +163,10 @@ void print_background(void) {
 
 void gui(uint8_t button_to_handle, uint8_t activitiy) {
 
+	boolean tilt_ready = false;
+	if( (roll_compensated < 14500) || (roll_compensated > 21500) || (pitch_compensated < 14500) || (pitch_compensated > 21500)) {
+		tilt_ready = true;
+	}
 	if (activitiy > ACTIVITIY_NONE) oled_action_time = millis();
 
 	if (button_to_handle == BUTTON_NONE) { //no actions, display only
@@ -206,7 +214,7 @@ void gui(uint8_t button_to_handle, uint8_t activitiy) {
 	else if (button_to_handle == BUTTON_CZ) {
 		switch (nunchuk_dpad) {
 		case DPAD_NONE:
-			if (activitiy > ACTIVITIY_NONE) {//action
+			if (activitiy == ACTIVITIY_MOTION) {//action
 				if (menu_state == MENU_OFF) menu_state = MENU_ON;
 				else {
 					menu_state = MENU_OFF;
@@ -248,6 +256,15 @@ void gui(uint8_t button_to_handle, uint8_t activitiy) {
 				else			 oled_load("SPOT ON?");
 			}
 			break;
+		case DPAD_DOWN_LEFT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				el_audio = !el_audio;
+			}
+			else {//display
+				if (ir_spot_on)  oled_load("EL SND OFF?");
+				else			 oled_load("EL SND ON?");
+			}
+			break;
 		case  DPAD_LEFT:
 			if (activitiy > ACTIVITIY_NONE) {//action
 				ir_cvg_on = !ir_cvg_on;
@@ -257,13 +274,25 @@ void gui(uint8_t button_to_handle, uint8_t activitiy) {
 				else		   oled_load("CVG ON?");
 			}
 			break;
+
 		case DPAD_UP:
 			if (activitiy > ACTIVITIY_NONE) {//action
-				on_sound_mode = !on_sound_mode;
+				if (menu_state == MENU_OFF) {
+					menu_state = MENU_ON;
+				}
+				else {
+					increment_background(1);
+					EL_animation = EL_ANI_RIGHT;
+				}
 			}
-			else {//display
-				if (on_sound_mode) oled_load("ANI?");
-				else		       oled_load("SND?");
+			else {
+				if (menu_state == MENU_OFF) {
+					if (on_sound_mode) oled_load("SND ON?");
+					else		       oled_load("ANI ON?");
+				}
+				else {
+					oled_load("EFFECT+?");
+				}
 			}
 			break;
 		case DPAD_DOWN_RIGHT:
@@ -275,7 +304,7 @@ void gui(uint8_t button_to_handle, uint8_t activitiy) {
 				else		           oled_load("MON ON?");
 			}
 			break;
-		case DPAD_DOWN:
+			case DPAD_DOWN:
 			if (activitiy > ACTIVITIY_NONE) {//action
 				menu_state = MENU_OFF;
 				supress_leds = true;
@@ -290,43 +319,7 @@ void gui(uint8_t button_to_handle, uint8_t activitiy) {
 	}
 	else if (button_to_handle == BUTTON_Z) {
 		switch (nunchuk_dpad) {
-		case DPAD_NONE:
-			if (activitiy > ACTIVITIY_NONE) {//action
-				if (menu_state == MENU_OFF) {
-					menu_state = MENU_ON;
-				}
-				else {
-					increment_background(1);
-					EL_animation = EL_ANI_RIGHT;
-				}
-			}
-			else {
-				if (menu_state == MENU_OFF) {
-					if (on_sound_mode) oled_load("SND START?");
-					else		       oled_load("ANI START?");
-				}
-				else {
-					oled_load("EFFECT+?");
-				}
-			}
-			break;
-		case DPAD_LEFT:
-			if (activitiy > ACTIVITIY_NONE) {//action
-				increment_background(-1);
-				EL_animation = EL_ANI_LEFT;
-			}
-			else {//display
-				oled_load("EFFECT-?");
-				break;
-		case DPAD_RIGHT:
-			if (activitiy > ACTIVITIY_NONE) {//action
-				increment_background(1);
-				EL_animation = EL_ANI_RIGHT;
-			}
-			else {//display
-				oled_load("EFFECT+?");
-			}
-			break;
+
 		case DPAD_UP:
 			if (activitiy > ACTIVITIY_NONE) {//action
 				on_sound_mode = !on_sound_mode;
@@ -338,13 +331,88 @@ void gui(uint8_t button_to_handle, uint8_t activitiy) {
 				}
 			}
 			else {//display
-				if (menu_state == MENU_OFF) {
-					if (on_sound_mode) oled_load("SND START?");
-					else		       oled_load("ANI START?");
-				}
-				else						oled_load("OFF?");
+				if (on_sound_mode) oled_load("ANI?");
+				else		       oled_load("SND?");
 			}
 			break;
+		case DPAD_LEFT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				increment_background(-1);
+				EL_animation = EL_ANI_LEFT;
+			}
+			else {//display
+				oled_load("EFFECT-?");
+				break;
+		case DPAD_NONE:
+			if (activitiy == ACTIVITIY_MOTION) {//action
+				increment_background(1);
+				EL_animation = EL_ANI_RIGHT;
+			}
+			else if (activitiy == ACTIVITIY_BUTTON) {//action
+				oled_action_time = 0; // supress
+			}
+			
+			else {//display
+				oled_load("EFFECT+?");
+			}
+			break;
+		case DPAD_RIGHT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				increment_background(1);
+				EL_animation = EL_ANI_RIGHT;
+			}
+			else {//display
+				oled_load("EFFECT+?");
+			}
+			break;
+		case DPAD_DOWN:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				auto_head_tilt();
+			}
+			else {//display
+				if (tilt_ready)		oled_load("TILT GOOD!");
+				else			oled_load("TILT MORE!");
+			}
+			break;
+
+			//SHORTCUTS!
+		case DPAD_DOWN_LEFT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				background_mode = BACKGROUND_ANI_GLITTER;
+				EL_animation = EL_ANI_LEFT;
+			}
+			else {//display
+				oled_load("GLITTER?");
+			}
+			break;
+		case DPAD_DOWN_RIGHT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				background_mode = BACKGROUND_ANI_DRIFT;
+				EL_animation = EL_ANI_LEFT;
+			}
+			else {//display
+				oled_load("DRIFT?");
+			}
+			break;
+		case DPAD_UP_RIGHT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				background_mode = BACKGROUND_ANI_SNAKE;
+				EL_animation = EL_ANI_LEFT;
+			}
+			else {//display
+				oled_load("SNAKE?");
+							}
+			break;
+		case DPAD_UP_LEFT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				background_mode = BACKGROUND_ANI_WAVE;
+				EL_animation = EL_ANI_LEFT;
+			}
+			else {//display
+				oled_load("WAVE?");
+			}
+			break;
+		
 		default:
 			oled_load("UNUSED");
 			}
@@ -352,11 +420,24 @@ void gui(uint8_t button_to_handle, uint8_t activitiy) {
 	}
 	else if (button_to_handle == BUTTON_C) {
 		switch (nunchuk_dpad) {
-		case DPAD_NONE:
+		case DPAD_RIGHT:
 			if (activitiy > ACTIVITIY_NONE) {//action
 				requested_palette++;
 				ChangeTargetPalette(1);
 				EL_animation = EL_ANI_RIGHT;
+			}
+			else {//display
+				oled_load("COLOR+?");
+			}
+			break;
+		case DPAD_NONE:
+			if (activitiy == ACTIVITIY_MOTION) {//action
+				requested_palette++;
+				ChangeTargetPalette(1);
+				EL_animation = EL_ANI_RIGHT;
+			}
+			else if (activitiy == ACTIVITIY_BUTTON) {//action
+				oled_action_time = 0; // supress
 			}
 			else {//display
 				oled_load("COLOR+?");
@@ -372,14 +453,43 @@ void gui(uint8_t button_to_handle, uint8_t activitiy) {
 				oled_load("COLOR-?");
 			}
 			break;
-		case DPAD_RIGHT:
+
+
+			//SHORTCUTS!
+		case DPAD_DOWN_LEFT:
 			if (activitiy > ACTIVITIY_NONE) {//action
-				requested_palette++;
-				ChangeTargetPalette(1);
-				EL_animation = EL_ANI_RIGHT;
+				background_mode = BACKGROUND_NOISE_1;
+				EL_animation = EL_ANI_LEFT;
 			}
 			else {//display
-				oled_load("COLOR+?");
+				oled_load("NOISE <>?");
+			}
+			break;
+		case DPAD_DOWN_RIGHT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				background_mode = BACKGROUND_NOISE_10;
+				EL_animation = EL_ANI_LEFT;
+			}
+			else {//display
+				oled_load("NOISE ::?");
+			}
+			break;
+		case DPAD_UP_RIGHT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				background_mode = BACKGROUND_NOISE_4;
+				EL_animation = EL_ANI_LEFT;
+			}
+			else {//display
+				oled_load("NOISE ZZ?");
+			}
+			break;
+		case DPAD_UP_LEFT:
+			if (activitiy > ACTIVITIY_NONE) {//action
+				background_mode = BACKGROUND_NOISE_6;
+				EL_animation = EL_ANI_LEFT;
+			}
+			else {//display
+				oled_load("NOISE 88?");
 			}
 			break;
 		default:

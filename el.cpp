@@ -12,6 +12,8 @@ uint32_t el_ani_time = 0;
 
 void update_el_state(void) {
 
+	if (el_audio == true) EL_animation = EL_ANI_STOP;
+
 	if (menu_state == MENU_OFF) {
 		EL_Mode = EL_OFF;
 		if (menu_state_last != menu_state) EL_animation = EL_ANI_OFF;
@@ -29,10 +31,10 @@ void update_el_state(void) {
 	if (EL_Mode == EL_OFF) {
 		if (EL_animation == EL_ANI_STOP)  EL_data = 0;
 	}
-	else if (EL_Mode == EL_ANI) {
+	else if (EL_Mode == EL_ANI && el_audio == false) {
 		if (EL_animation == EL_ANI_STOP) EL_data = 0xFF;
 	}
-	else if (EL_Mode == EL_FFT) {
+	else if (EL_Mode == EL_FFT || el_audio == true) {
 		if (EL_animation == EL_ANI_STOP) {
 			EL_data = 0;
 			for (uint8_t i = 0; i < 8; i++) {
@@ -169,7 +171,7 @@ void update_el_state(void) {
 	}
 
 
-	if (supress_leds) EL_data = 0;
+	if (menu_state == MENU_OFF && EL_animation < 34 ) EL_data = 0;
 
 	EL_Mode_last = EL_Mode;
 }

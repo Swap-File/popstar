@@ -170,7 +170,7 @@ void nunchuk_update() {
 		nunchuk_state =0; //goto re init
 	}
 
-	Serial.println(nunchuk_state);
+	//Serial.println(nunchuk_state);
 
 	return;
 }

@@ -44,6 +44,7 @@ boolean palette_auto = true;
 boolean background_auto = true;
 boolean on_sound_mode = true;
 boolean internal_preview = true;
+boolean el_audio = false;
 
 float voltage = 24.0;
 
